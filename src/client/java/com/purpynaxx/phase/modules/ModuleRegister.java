@@ -3,16 +3,12 @@ package com.purpynaxx.phase.modules;
 import com.purpynaxx.phase.Phase;
 import org.jetbrains.annotations.NotNull;
 import org.reflections.Reflections;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
 public class ModuleRegister {
-
-    // Using an inner static class for lazy, thread-safe initialization
-    private static class Holder {
-        private static final ModuleRegister INSTANCE = new ModuleRegister();
-    }
 
     private final Set<ModuleBase> modules = new HashSet<>();
     private final Map<Class<? extends ModuleBase>, ModuleBase> classModuleBaseMap = new HashMap<>();
@@ -68,6 +64,11 @@ public class ModuleRegister {
 
     public <T extends ModuleBase> T getModuleByClass(@NotNull Class<T> clazz) {
         return clazz.cast(classModuleBaseMap.get(clazz));
+    }
+
+    // Using an inner static class for lazy, thread-safe initialization
+    private static class Holder {
+        private static final ModuleRegister INSTANCE = new ModuleRegister();
     }
 
 }

@@ -1,11 +1,11 @@
 {
-	"required": true,
-	"package": "com.purpynaxx.phase.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"client": [
-		"ExampleMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	}
+  "required": true,
+  "package": "com.purpynaxx.phase.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ExampleMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }
