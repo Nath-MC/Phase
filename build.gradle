@@ -50,7 +50,7 @@ dependencies {
     }
 
     // I will very likely use it later
-    //include(implementation "org.reflections:reflections:${reflections_version}")
+    include(implementation "org.reflections:reflections:${reflections_version}")
 
     // Api modules needed for the mod
     Set<String> apiModules = [
