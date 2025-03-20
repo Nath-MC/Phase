@@ -1,6 +1,7 @@
 package com.purpynaxx.phase;
 
 import com.purpynaxx.phase.modules.ModuleRegister;
+import com.purpynaxx.phase.modules.impl.ModuleManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import org.slf4j.Logger;
@@ -15,8 +16,8 @@ public class Phase implements ClientModInitializer {
     public void onInitializeClient() {
         logger.info("Hello Fabric World !");
 
-        ModuleRegister moduleRegister = ModuleRegister.getInstance();
-        if (!moduleRegister.register()) // Register modules and check result
+        ModuleManager moduleManager = ModuleManager.getInstance();
+        if (!moduleManager.init()) // Register modules and check result
             logger.warn("Some modules were not instanced properly ! Please check above errors.");
     }
 }
