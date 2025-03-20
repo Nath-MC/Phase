@@ -49,7 +49,6 @@ dependencies {
         modImplementation(fabricApi.module(it, fabricApi_version))
     }
 
-    // I will very likely use it later
     include(implementation "org.reflections:reflections:${reflections_version}")
 
     // Api modules needed for the mod
