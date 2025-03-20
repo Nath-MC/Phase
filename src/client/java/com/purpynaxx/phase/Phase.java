@@ -1,6 +1,6 @@
 package com.purpynaxx.phase;
 
-import com.purpynaxx.phase.modules.ModuleRegister;
+import com.purpynaxx.phase.events.EventManager;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
@@ -19,5 +19,7 @@ public class Phase implements ClientModInitializer {
         ModuleManager moduleManager = ModuleManager.getInstance();
         if (!moduleManager.init()) // Register modules and check result
             logger.warn("Some modules were not instanced properly ! Please check above errors.");
+
+        EventManager.getInstance().init();
     }
 }
