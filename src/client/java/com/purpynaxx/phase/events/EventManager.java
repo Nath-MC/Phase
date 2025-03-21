@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.events;
 
 import com.purpynaxx.phase.events.annotations.Event;
-import com.purpynaxx.phase.events.network.PacketEvent;
+import com.purpynaxx.phase.events.network.PacketCallback;
 import com.purpynaxx.phase.modules.impl.ModuleBase;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -64,8 +64,9 @@ public class EventManager {
                     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> invoke(method, module));
             case onWorldLeave ->
                     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> invoke(method, module));
-            case onPacketReceive -> PacketEvent.IN.register((packet, event) -> invoke(method, module, packet, event));
-            case onPacketSend -> PacketEvent.OUT.register((packet, event) -> invoke(method, module, packet, event));
+            case onPacketReceive ->
+                    PacketCallback.IN.register((packet, event) -> invoke(method, module, packet, event));
+            case onPacketSend -> PacketCallback.OUT.register((packet, event) -> invoke(method, module, packet, event));
         }
     }
 

@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.network.packet.Packet;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-public abstract class PacketEvent {
+public abstract class PacketCallback {
 
     public static final Event<IN> IN = EventFactory.createArrayBacked(IN.class, callbacks -> (packet, event) -> {
         for (IN event1 : callbacks)
