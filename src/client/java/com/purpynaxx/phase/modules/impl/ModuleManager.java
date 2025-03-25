@@ -77,6 +77,25 @@ public class ModuleManager {
         return module.isActive();
     }
 
+    public void setModuleActive(Class<? extends ModuleBase> clazz, boolean active) {
+        this.setModuleActive(this.classModuleBaseMap.get(clazz), active);
+    }
+
+    public void setModuleActive(@NotNull ModuleBase module, boolean active) {
+        module.setActive(active);
+    }
+
+    public void toggleModuleActive(Class<? extends ModuleBase> clazz) {
+        ModuleBase module = this.classModuleBaseMap.get(clazz);
+        boolean active = module.isActive();
+        this.setModuleActive(module, !active);
+    }
+
+    public void toggleModuleActive(@NotNull ModuleBase module) {
+        boolean active = module.isActive();
+        this.setModuleActive(module, !active);
+    }
+
     // Using an inner static class for lazy, thread-safe initialization
     private static class Holder {
         private static final ModuleManager INSTANCE = new ModuleManager();

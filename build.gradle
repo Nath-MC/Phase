@@ -49,8 +49,6 @@ dependencies {
         modImplementation(fabricApi.module(it, fabricApi_version))
     }
 
-    include(implementation "org.reflections:reflections:${reflections_version}")
-
     // Api modules needed for the mod
     Set<String> apiModules = [
             "fabric-api-base",
@@ -62,6 +60,9 @@ dependencies {
     apiModules.forEach {
         include(modImplementation(fabricApi.module(it, fabricApi_version)))
     }
+
+    include(implementation "org.reflections:reflections:${reflections_version}")
+    implementation "io.github.spair:imgui-java-app:${imgui_java_version}"
 
 }
 
