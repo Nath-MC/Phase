@@ -24,11 +24,10 @@ public class Phase implements ClientModInitializer {
 
         ModuleManager moduleManager = ModuleManager.getInstance();
         if (!moduleManager.init()) // Register modules and check result
-            logger.warn("Some modules were not instanced properly ! Please check above errors.");
+            logger.warn("Some modules were not instanced properly ! Please check errors above.");
 
         EventManager.getInstance().init();
 
-        //TODO translations
         keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.phase.open_menu",
                 InputUtil.Type.KEYSYM,

@@ -1,22 +1,19 @@
 package com.purpynaxx.phase.events;
 
-import com.purpynaxx.phase.events.annotations.Event;
+import com.purpynaxx.phase.events.listeners.*;
 import com.purpynaxx.phase.events.network.PacketCallback;
 import com.purpynaxx.phase.modules.impl.ModuleBase;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.purpynaxx.phase.Phase.isDevEnvironment;
 import static com.purpynaxx.phase.Phase.logger;
 import static com.purpynaxx.phase.helpers.Player.isPlayerInWorld;
+
 
 public class EventManager {
 
@@ -29,84 +26,158 @@ public class EventManager {
     }
 
     public void init() {
-        Set<ModuleBase> modules = getModules();
-        int methodRegistered = 0;
+        Set<ModuleBase> modules = this.getModules();
+        int listenersRegistered = 0;
+        int modulesScanned = 0;
+
+        logger.info("Starting event registration...");
 
         for (ModuleBase module : modules) {
-            Class<? extends ModuleBase> clazz = module.getClass();
-            Method[] methods = clazz.getDeclaredMethods();
+            modulesScanned++;
+            boolean registeredAny = false;
 
-            for (Method method : methods) {
-                if (!method.isAnnotationPresent(Event.class)) continue;
-                Event eventAnnotation = method.getAnnotation(Event.class);
-                Type eventType = eventAnnotation.value();
+            if (module instanceof WorldStartTickListener listener) {
+                ClientTickEvents.START_WORLD_TICK.register(world -> {
+                    if (module.isActive() && isPlayerInWorld()) {
+                        try {
+                            listener.onWorldTickStart(world);
+                        } catch (Exception e) {
+                            logListenerError(module, "onWorldTickStart", e);
+                        }
+                    }
+                });
+                logRegistration(module, "WorldTickStartListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
 
-                if (Objects.isNull(eventType)) {
-                    logger.warn("Event value not defined in annotation for method \"{}\" in class \"{}\".", method.getName(), clazz.getSimpleName());
-                    continue;
-                }
+            if (module instanceof WorldTickEndListener listener) {
+                ClientTickEvents.END_WORLD_TICK.register(world -> {
+                    if (module.isActive() && isPlayerInWorld()) {
+                        try {
+                            listener.onWorldTickEnd(world);
+                        } catch (Exception e) {
+                            logListenerError(module, "onWorldTickEnd", e);
+                        }
+                    }
+                });
+                logRegistration(module, "WorldTickEndListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
 
-                registerEvent(method, module, eventType);
-                if (isDevEnvironment) logger.info("Registered method {}.{}", clazz.getSimpleName(), method.getName());
-                methodRegistered++;
+            if (module instanceof ClientTickStartListener listener) {
+                ClientTickEvents.START_CLIENT_TICK.register(client -> {
+                    if (module.isActive() && isPlayerInWorld()) {
+                        try {
+                            listener.onClientTickStart(client);
+                        } catch (Exception e) {
+                            logListenerError(module, "onClientTickStart", e);
+                        }
+                    }
+                });
+                logRegistration(module, "ClientTickStartListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
+
+            if (module instanceof ClientTickEndListener listener) {
+                ClientTickEvents.END_CLIENT_TICK.register(client -> {
+                    if (module.isActive() && isPlayerInWorld()) {
+                        try {
+                            listener.onClientTickEnd(client);
+                        } catch (Exception e) {
+                            logListenerError(module, "onClientTickEnd", e);
+                        }
+                    }
+                });
+                logRegistration(module, "ClientTickEndListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
+
+            if (module instanceof WorldJoinListener listener) {
+                ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+                    if (module.isActive()) {
+                        try {
+                            listener.onWorldJoin(handler, sender, client);
+                        } catch (Exception e) {
+                            logListenerError(module, "onWorldJoin", e);
+                        }
+                    }
+                });
+                logRegistration(module, "WorldJoinListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
+
+            if (module instanceof WorldLeaveListener listener) {
+                ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+                    if (module.isActive()) {
+                        try {
+                            listener.onWorldLeave(handler, client);
+                        } catch (Exception e) {
+                            logListenerError(module, "onWorldLeave", e);
+                        }
+                    }
+                });
+                logRegistration(module, "WorldLeaveListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
+
+            if (module instanceof PacketReceiveListener listener) {
+                PacketCallback.IN.register((packet, event) -> {
+                    if (module.isActive() && isPlayerInWorld()) {
+                        try {
+                            listener.onPacketReceive(packet, event);
+                        } catch (Exception e) {
+                            logListenerError(module, "onPacketReceive", e);
+                        }
+                    }
+                });
+                logRegistration(module, "PacketReceiveListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
+
+            if (module instanceof PacketSendListener listener) {
+                PacketCallback.OUT.register((packet, event) -> {
+                    if (module.isActive() && isPlayerInWorld()) {
+                        try {
+                            listener.onPacketSend(packet, event);
+                        } catch (Exception e) {
+                            logListenerError(module, "onPacketSend", e);
+                        }
+                    }
+                });
+                logRegistration(module, "PacketSendListener");
+                listenersRegistered++;
+                registeredAny = true;
+            }
+
+            if (!registeredAny && isDevEnvironment) {
+                logger.debug("Module {} implements no known listener interfaces.", module.getClass().getSimpleName());
             }
         }
-        logger.info("{} methods were registered in {} classes.", methodRegistered, modules.size());
+        logger.info("{} listeners were registered across {} scanned modules.", listenersRegistered, modulesScanned);
     }
 
-    private void registerEvent(Method method, ModuleBase module, @NotNull Type eventType) {
-        switch (eventType) {
-            case onStartWorldTick -> ClientTickEvents.START_WORLD_TICK.register(world -> invoke(method, module, world));
-            case onEndWorldTick -> ClientTickEvents.END_CLIENT_TICK.register(world -> invoke(method, module, world));
-            case onStartClientTick -> ClientTickEvents.START_CLIENT_TICK.register(client -> invoke(method, module));
-            case onEndClientTick -> ClientTickEvents.END_CLIENT_TICK.register(client -> invoke(method, module));
-            case onWorldJoin ->
-                    ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> invoke(method, module));
-            case onWorldLeave ->
-                    ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> invoke(method, module));
-            case onPacketReceive ->
-                    PacketCallback.IN.register((packet, event) -> invoke(method, module, packet, event));
-            case onPacketSend -> PacketCallback.OUT.register((packet, event) -> invoke(method, module, packet, event));
+    private void logRegistration(ModuleBase module, String listenerType) {
+        if (isDevEnvironment) {
+            logger.info("Registered {} as {}", module.getName(), listenerType);
         }
     }
 
-    private void invoke(Method method, ModuleBase module, Object... args) {
-        if (moduleManager.isModuleActive(module) && areArgsValid(method, args) && isPlayerInWorld()) {
-            try {
-                method.setAccessible(true);
-                method.invoke(module, args);
-            } catch (InvocationTargetException | IllegalAccessException e) {
-                logger.error("Could not invoke method \"{}\" in class \"{}\" : {}", method.getName(), module.getName(), e);
-            }
-        }
-    }
-
-    private boolean areArgsValid(@NotNull Method method, Object @NotNull ... args) {
-        @NotNull Class<?>[] expectedTypes = method.getParameterTypes();
-        int argsCount = expectedTypes.length;
-        if (args.length != argsCount) return false;
-        for (int i = 0; i < argsCount; i++)
-            if (args[i] == null || !expectedTypes[i].isAssignableFrom(args[i].getClass())) return false;
-        return true;
+    private void logListenerError(ModuleBase module, String methodName, Exception e) {
+        logger.error("Exception in listener method \"{}\" in module \"{}\": {}", methodName, module.getName(), e.getMessage(), e);
     }
 
     private @Unmodifiable Set<ModuleBase> getModules() {
         return moduleManager.getModules();
     }
 
-    public enum Type {
-        onStartWorldTick,
-        onEndWorldTick,
-        onStartClientTick,
-        onEndClientTick,
-        onPacketReceive,
-        onPacketSend,
-        onWorldJoin,
-        onWorldLeave
-    }
-
     private static class Holder {
         private static final EventManager instance = new EventManager();
     }
-
 }

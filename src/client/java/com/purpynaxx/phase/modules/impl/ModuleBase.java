@@ -19,9 +19,6 @@ public abstract class ModuleBase {
         this.active = false;
     }
 
-    protected abstract void run();
-
-
     public String getName() {
         return name;
     }

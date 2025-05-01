@@ -2,6 +2,7 @@ package com.purpynaxx.phase.modules.impl;
 
 import com.purpynaxx.phase.Phase;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
 
 import java.lang.reflect.InvocationTargetException;
@@ -47,7 +48,7 @@ public class ModuleManager {
         if (failedInstantiation == 0) logger.info("{} modules were instanced.", modules.size());
         else logger.info("{} modules were instanced. {} failed.", modules.size(), failedInstantiation);
         registered = true;
-        return failedInstantiation == 0; // True if all modules instanced correctly, false otherwise
+        return failedInstantiation == 0;
     }
 
     private void add(Class<? extends ModuleBase> clazz, ModuleBase m) {
@@ -61,7 +62,7 @@ public class ModuleManager {
         failedInstantiation++;
     }
 
-    public Set<ModuleBase> getModules() {
+    public @UnmodifiableView Set<ModuleBase> getModules() {
         return Collections.unmodifiableSet(modules);
     }
 
@@ -86,9 +87,7 @@ public class ModuleManager {
     }
 
     public void toggleModuleActive(Class<? extends ModuleBase> clazz) {
-        ModuleBase module = this.classModuleBaseMap.get(clazz);
-        boolean active = module.isActive();
-        this.setModuleActive(module, !active);
+        this.toggleModuleActive(this.classModuleBaseMap.get(clazz));
     }
 
     public void toggleModuleActive(@NotNull ModuleBase module) {

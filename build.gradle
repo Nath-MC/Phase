@@ -62,8 +62,6 @@ dependencies {
     }
 
     include(implementation "org.reflections:reflections:${reflections_version}")
-    implementation "io.github.spair:imgui-java-app:${imgui_java_version}"
-
 }
 
 processResources {
