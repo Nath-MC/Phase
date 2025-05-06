@@ -2,6 +2,7 @@ package com.purpynaxx.phase;
 
 import com.purpynaxx.phase.events.EventManager;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
+import com.purpynaxx.phase.modules.visuals.GUI;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -17,7 +18,7 @@ public class Phase implements ClientModInitializer {
     public final static String modId = "phase";
     public final static Logger logger = LoggerFactory.getLogger(Phase.class);
     public final static boolean isDevEnvironment = FabricLauncherBase.getLauncher().isDevelopment();
-    private static KeyBinding keyBinding;
+    public static KeyBinding keyBinding;
 
     @Override
     public void onInitializeClient() {
@@ -36,10 +37,8 @@ public class Phase implements ClientModInitializer {
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (keyBinding.wasPressed()) {
-//                moduleManager.toggleModuleActive(GUI.class);
-                //TODO, setup the config windows
-            }
+            while (keyBinding.wasPressed())
+                moduleManager.toggleModuleActive(GUI.class);
         });
     }
 }

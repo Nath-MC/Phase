@@ -14,14 +14,23 @@ import static com.purpynaxx.phase.Phase.logger;
 public class ModuleManager {
 
     private final Set<ModuleBase> modules = new HashSet<>();
+    private final Set<Category> categories = new HashSet<>();
     private final Map<Class<? extends ModuleBase>, ModuleBase> classModuleBaseMap = new HashMap<>();
-    private boolean registered = false;
-    private int failedInstantiation = 0;
-
+    private final Map<Category, Set<ModuleBase>> modulesByCategoryMap = new HashMap<>();
+    private boolean registered;
+    private int failedInstantiation;
     private ModuleManager() {}
 
     public static ModuleManager getInstance() {
         return Holder.INSTANCE;
+    }
+
+    public @UnmodifiableView Map<Category, Set<ModuleBase>> getModulesByCategoryMap() {
+        return Collections.unmodifiableMap(modulesByCategoryMap);
+    }
+
+    public @UnmodifiableView Set<Category> getCategories() {
+        return Collections.unmodifiableSet(categories);
     }
 
     public boolean init() {
@@ -45,6 +54,12 @@ public class ModuleManager {
             }
         }
 
+        for (ModuleBase module : this.getModules()) {
+            Category category = module.getCategory();
+            modulesByCategoryMap.putIfAbsent(category, new HashSet<>());
+            modulesByCategoryMap.get(category).add(module);
+        }
+
         if (failedInstantiation == 0) logger.info("{} modules were instanced.", modules.size());
         else logger.info("{} modules were instanced. {} failed.", modules.size(), failedInstantiation);
         registered = true;
@@ -54,11 +69,12 @@ public class ModuleManager {
     private void add(Class<? extends ModuleBase> clazz, ModuleBase m) {
         classModuleBaseMap.put(clazz, m);
         modules.add(m);
+        categories.add(m.getCategory());
         if (Phase.isDevEnvironment) Phase.logger.info("{} has been registered.", clazz.getSimpleName());
     }
 
     private void onFail(String name, Exception e) {
-        Phase.logger.error("Failed to instantiate {} : {}", name, e);
+        Phase.logger.error("Failed to instantiate {} : {}", name, e.getCause());
         failedInstantiation++;
     }
 
@@ -95,7 +111,6 @@ public class ModuleManager {
         this.setModuleActive(module, !active);
     }
 
-    // Using an inner static class for lazy, thread-safe initialization
     private static class Holder {
         private static final ModuleManager INSTANCE = new ModuleManager();
     }
