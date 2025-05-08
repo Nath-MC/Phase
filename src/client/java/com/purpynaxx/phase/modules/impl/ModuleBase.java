@@ -8,13 +8,13 @@ import java.util.Locale;
 
 public abstract class ModuleBase {
 
-    protected static ModuleBase instance; // each module should be a singleton
     protected final Category category;
     protected final String name;
     protected final String desc;
     protected final Logger logger;
     protected final MinecraftClient client = MinecraftClient.getInstance();
     protected boolean active;
+
     protected ModuleBase(String desc) {
         this.category = this.setCategory();
         this.name = this.getClass().getSimpleName();
@@ -23,7 +23,7 @@ public abstract class ModuleBase {
         this.logger = LoggerFactory.getLogger(this.name);
     }
 
-    public Category getCategory() {
+    public final Category getCategory() {
         return category;
     }
 
@@ -32,19 +32,19 @@ public abstract class ModuleBase {
         return Category.valueOf(packageName.substring(packageName.lastIndexOf(".") + 1).toUpperCase(Locale.ROOT));
     }
 
-    public String getName() {
+    public final String getName() {
         return name;
     }
 
-    public String getDesc() {
+    public final String getDesc() {
         return desc;
     }
 
-    public boolean isActive() {
+    public final boolean isActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public final void setActive(boolean active) {
         this.active = active;
         if (active) this.onActivation();
         else this.onDeactivation();

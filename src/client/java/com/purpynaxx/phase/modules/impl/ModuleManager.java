@@ -5,8 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 
 import static com.purpynaxx.phase.Phase.logger;
@@ -42,14 +42,12 @@ public class ModuleManager {
 
         for (Class<? extends ModuleBase> c : moduleClasses) {
             try {
-                Method getInstanceMethod = c.getDeclaredMethod("getInstance");
-                getInstanceMethod.setAccessible(true);
-                ModuleBase module = (ModuleBase) getInstanceMethod.invoke(null);
-                if (!Objects.isNull(module))
-                    add(c, module);
-                else
-                    onFail(c.getSimpleName(), new NullPointerException("Module instance is null"));
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                Constructor<? extends ModuleBase> constructor = c.getDeclaredConstructor();
+                constructor.setAccessible(true);
+                ModuleBase module = constructor.newInstance();
+                add(c, module);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException |
+                     InstantiationException e) {
                 onFail(c.getSimpleName(), e);
             }
         }
@@ -74,7 +72,7 @@ public class ModuleManager {
     }
 
     private void onFail(String name, Exception e) {
-        Phase.logger.error("Failed to instantiate {} : {}", name, e.getCause());
+        Phase.logger.error("Failed to instantiate {} : {}", name, e);
         failedInstantiation++;
     }
 
@@ -114,5 +112,4 @@ public class ModuleManager {
     private static class Holder {
         private static final ModuleManager INSTANCE = new ModuleManager();
     }
-
 }
