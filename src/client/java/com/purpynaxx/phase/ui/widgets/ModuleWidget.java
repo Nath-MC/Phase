@@ -108,18 +108,23 @@ public class ModuleWidget implements Element, Selectable, Drawable {
         hoverAnimationProgress = MathHelper.clamp(hoverAnimationProgress, 0.0f, 1.0f);
 
         int baseAlpha = 0;
-        int hoverAlpha = 50;
+        int hoverAlpha = 60;
         int currentAlpha = MathHelper.lerp(hoverAnimationProgress, baseAlpha, hoverAlpha);
 
-        if (this.isActive())
-            context.fill(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight(), new Color(220, 194, 194, 50).getRGB());
+        if (this.isActive() && this.isHovered()) {
+            int color1 = new Color(255, 255, 255, 40).getRGB();
+            int color2 = new Color(255, 255, 255, 70).getRGB();
+            int backgroundColor = interpolateColor(color1, color2, hoverAnimationProgress);
+            context.fill(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight(), backgroundColor);
+        } else if (this.isActive())
+            context.fill(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight(), new Color(255, 255, 255, 40).getRGB());
         else if (currentAlpha > 0)
             context.fill(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight(), new Color(255, 255, 255, currentAlpha).getRGB());
 
         Text message = this.getMessage();
         int textX = this.getX() + this.getWidth() / 2 - textRenderer.getWidth(message) / 2;
         int textY = this.getY() + (this.getHeight() - this.textRenderer.fontHeight) / 2 + 1;
-        int textColor = this.isActive() ? Color.WHITE.getRGB() : interpolateColor(Color.LIGHT_GRAY.getRGB(), Color.MAGENTA.getRGB(), hoverAnimationProgress);
+        int textColor = this.isActive() ? Color.WHITE.getRGB() : interpolateColor(Color.LIGHT_GRAY.getRGB(), Color.WHITE.getRGB(), hoverAnimationProgress);
         context.drawText(this.textRenderer, message, textX, textY, textColor, false);
     }
 
