@@ -1,6 +1,7 @@
 package com.purpynaxx.phase.ui.widgets;
 
 import com.purpynaxx.phase.modules.impl.ModuleBase;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Drawable;
@@ -13,24 +14,27 @@ import java.util.List;
 public class CategoryPanelWidget implements Drawable, Element {
 
     private static final int dragThresholdSquared = 9;
+    private static final int titleBarHeight = 15;
 
-    private final TextRenderer textRenderer;
+    private static final TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+
+    private static final int backgroundColor = new Color(20, 20, 20, 200).getRGB();
+    private static final int titleBarColor = new Color(40, 40, 40, 255).getRGB();
+    private static final int borderColor = new Color(80, 80, 80, 255).getRGB();
+    private static final int titleColor = Color.WHITE.getRGB();
+
+    private static final int width = 100;
+
     private final String title;
-
-    private final int titleBarHeight = 15;
 
     private final List<Element> children = new ArrayList<>();
     private final List<Drawable> drawables = new ArrayList<>();
 
-    private final int backgroundColor = new Color(20, 20, 20, 200).getRGB();
-    private final int titleBarColor = new Color(40, 40, 40, 255).getRGB();
-    private final int borderColor = new Color(80, 80, 80, 255).getRGB();
-    private final int titleColor = Color.WHITE.getRGB();
-
-    private final int width = 100;
     private final int screenWidth;
     private final int screenHeight;
+
     private int height;
+
     private int x;
     private int y;
 
@@ -45,11 +49,13 @@ public class CategoryPanelWidget implements Drawable, Element {
     private double lastClickY;
 
 
-    public CategoryPanelWidget(TextRenderer textRenderer, String title, int screenWidth, int screenHeight) {
-        this.textRenderer = textRenderer;
+    public CategoryPanelWidget(String title, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
         this.title = title;
+        this.x = x;
+        this.y = y;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
+        this.collapsed = collapsed;
     }
 
     public void addModuleEntry(ModuleBase module) {
@@ -57,25 +63,33 @@ public class CategoryPanelWidget implements Drawable, Element {
         int x = this.x;
         int y = this.y + titleBarHeight + children.size() * height;
 
-        ModuleWidget moduleWidget = new ModuleWidget(module, x, y, this.width, height, this.textRenderer);
+        ModuleWidget moduleWidget = new ModuleWidget(module, x, y, width, height, textRenderer);
 
         this.drawables.add(moduleWidget);
         this.children.add(moduleWidget);
-        this.height += this.height == 0 ? this.titleBarHeight + height : height;
+        this.height += this.height == 0 ? titleBarHeight + height : height;
     }
 
-    public void setY(int y) {
-        this.y = y;
+    public int getX() {
+        return x;
     }
 
     public void setX(int x) {
         this.x = x;
     }
 
+    public int getY() {
+        return y;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         context.fill(x, y, x + width, y + titleBarHeight, titleBarColor);
-        context.drawText(this.textRenderer, this.getTitle(), x + 4, y + (titleBarHeight - this.textRenderer.fontHeight) / 2 + 1, titleColor, false);
+        context.drawText(textRenderer, this.getTitle(), x + 4, y + (titleBarHeight - textRenderer.fontHeight) / 2 + 1, titleColor, false);
 
         if (this.isCollapsed()) {
             context.drawBorder(x, y, width, titleBarHeight, borderColor);
@@ -108,11 +122,11 @@ public class CategoryPanelWidget implements Drawable, Element {
         context.disableScissor();
     }
 
-    private boolean isCollapsed() {
+    public boolean isCollapsed() {
         return collapsed;
     }
 
-    private void setCollapsed(boolean collapsed) {
+    public void setCollapsed(boolean collapsed) {
         this.collapsed = collapsed;
     }
 
@@ -241,7 +255,8 @@ public class CategoryPanelWidget implements Drawable, Element {
 
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        return mouseX >= this.x && mouseX <= this.x + this.width && mouseY >= this.y && mouseY <= this.y + (this.isCollapsed() ? this.titleBarHeight : this.height);
+        int height = this.isCollapsed() ? titleBarHeight : this.height;
+        return mouseX >= this.x && mouseX <= this.x + width && mouseY >= this.y && mouseY <= this.y + height;
     }
 
     public boolean isDragging() {

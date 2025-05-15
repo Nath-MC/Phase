@@ -2,6 +2,7 @@ package com.purpynaxx.phase.ui;
 
 import com.purpynaxx.phase.Phase;
 import com.purpynaxx.phase.modules.impl.Category;
+import com.purpynaxx.phase.modules.impl.ModuleBase;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
 import com.purpynaxx.phase.ui.widgets.CategoryPanelWidget;
@@ -9,12 +10,14 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
+import static com.purpynaxx.phase.Phase.logger;
 
 
 public class ModuleScreen extends Screen {
 
+    private static final Map<String, Object[]> lastPanelsStates = new HashMap<>();
     private final List<CategoryPanelWidget> panels = new ArrayList<>();
     private final ModuleManager manager = ModuleManager.getInstance();
     private final Screen parent;
@@ -26,13 +29,44 @@ public class ModuleScreen extends Screen {
 
     @Override
     protected void init() {
-        //TODO Save state and restore it, being able to scale current positions after resizing
         panels.clear();
-        for (Category category : manager.getCategories()) {
-            CategoryPanelWidget panelWidget = new CategoryPanelWidget(this.textRenderer, category.getFriendlyName(), this.width, this.height);
-            manager.getModulesByCategoryMap().get(category).forEach(panelWidget::addModuleEntry);
-            panels.add(panelWidget);
+        if (lastPanelsStates.isEmpty()) {
+            int index = 0;
+            int categories = manager.getCategories().size();
+            final int padding = 16;
+            final int panelWidth = 100;
+            int totalPanelsAndPaddingWidth = (categories * panelWidth) + Math.max(0, categories - 1) * padding;
+            int startX = (this.width - totalPanelsAndPaddingWidth) / 2;
+
+            for (Category category : manager.getCategories()) {
+                int x = startX + (index * panelWidth) + (index * padding);
+                int y = this.height / 10;
+                this.createAndPopulatePanel(category, x, y, false);
+                index++;
+            }
+        } else {
+            for (Map.Entry<String, Object[]> entry : lastPanelsStates.entrySet()) {
+                String title = entry.getKey();
+                Object[] state = entry.getValue();
+
+                try {
+                    Category category = Category.valueOf(title.toUpperCase());
+                    int x = (int) state[0];
+                    int y = (int) state[1];
+                    boolean collapsed = (boolean) state[2];
+                    this.createAndPopulatePanel(category, x, y, collapsed);
+                } catch (IllegalArgumentException e) {
+                    logger.error("No category with the specified name", e);
+                }
+            }
         }
+    }
+
+    private void createAndPopulatePanel(Category category, int x, int y, boolean collapsed) {
+        Set<ModuleBase> modules = manager.getModulesByCategoryMap().get(category);
+        CategoryPanelWidget panelWidget = new CategoryPanelWidget(category.getFriendlyName(), x, y, this.width, this.height, collapsed);
+        modules.forEach(panelWidget::addModuleEntry);
+        panels.add(panelWidget);
     }
 
     @Override
@@ -101,7 +135,13 @@ public class ModuleScreen extends Screen {
 
     @Override
     public void close() {
-        // TODO save windows state
+        for (CategoryPanelWidget panel : panels) {
+            lastPanelsStates.put(panel.getTitle(), new Object[]{
+                    panel.getX(),
+                    panel.getY(),
+                    panel.isCollapsed()
+            });
+        }
         this.client.setScreen(parent);
         manager.setModuleActive(GUI.class, false);
     }

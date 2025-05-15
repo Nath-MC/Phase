@@ -157,7 +157,7 @@ public class EventManager {
             }
 
             if (!registeredAny && isDevEnvironment) {
-                logger.debug("Module {} implements no known listener interfaces.", module.getClass().getSimpleName());
+                logger.warn("Module {} implements no known listener interfaces.", module.getClass().getSimpleName());
             }
         }
         logger.info("{} listeners were registered across {} scanned modules.", listenersRegistered, modulesScanned);

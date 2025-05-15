@@ -19,6 +19,7 @@ public class ModuleManager {
     private final Map<Category, Set<ModuleBase>> modulesByCategoryMap = new HashMap<>();
     private boolean registered;
     private int failedInstantiation;
+
     private ModuleManager() {}
 
     public static ModuleManager getInstance() {
