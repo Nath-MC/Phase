@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.ui.widgets;
+package com.purpynaxx.phase.gui.widgets;
 
 import com.purpynaxx.phase.modules.impl.ModuleBase;
 import net.minecraft.client.MinecraftClient;

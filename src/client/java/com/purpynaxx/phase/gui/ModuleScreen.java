@@ -1,36 +1,56 @@
-package com.purpynaxx.phase.ui;
+package com.purpynaxx.phase.gui;
 
+import com.mojang.serialization.Codec;
 import com.purpynaxx.phase.Phase;
+import com.purpynaxx.phase.config.ConfigManager;
+import com.purpynaxx.phase.gui.serialization.PanelState;
+import com.purpynaxx.phase.gui.widgets.CategoryPanelWidget;
 import com.purpynaxx.phase.modules.impl.Category;
 import com.purpynaxx.phase.modules.impl.ModuleBase;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
-import com.purpynaxx.phase.ui.widgets.CategoryPanelWidget;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-import java.util.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import static com.purpynaxx.phase.Phase.logger;
 
-
 public class ModuleScreen extends Screen {
 
-    private static final Map<String, Object[]> lastPanelsStates = new HashMap<>();
+    private static final File savedStatesFile = ConfigManager.getConfigFile("gui/states.nbt");
+    private static final Codec<List<PanelState>> PANEL_STATE_LIST_CODEC = Codec.list(PanelState.CODEC);
+
+    private static List<PanelState> currentPanelStates = new ArrayList<>();
     private final List<CategoryPanelWidget> panels = new ArrayList<>();
     private final ModuleManager manager = ModuleManager.getInstance();
     private final Screen parent;
+
 
     public ModuleScreen(String title, Screen parent) {
         super(Text.literal(title));
         this.parent = parent;
     }
 
+    private void saveStates() {
+        List<PanelState> statesToSave = new ArrayList<>();
+        for (CategoryPanelWidget panel : panels)
+            statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed()));
+        ConfigManager.saveData(savedStatesFile, PANEL_STATE_LIST_CODEC, statesToSave);
+        currentPanelStates = new ArrayList<>(statesToSave);
+    }
+
+
     @Override
     protected void init() {
-        panels.clear();
-        if (lastPanelsStates.isEmpty()) {
+        this.panels.clear();
+        currentPanelStates = ConfigManager.loadData(savedStatesFile, PANEL_STATE_LIST_CODEC, ArrayList::new);
+        if (currentPanelStates.isEmpty()) {
+            logger.info("Using default configuration");
             int index = 0;
             int categories = manager.getCategories().size();
             final int padding = 16;
@@ -45,18 +65,14 @@ public class ModuleScreen extends Screen {
                 index++;
             }
         } else {
-            for (Map.Entry<String, Object[]> entry : lastPanelsStates.entrySet()) {
-                String title = entry.getKey();
-                Object[] state = entry.getValue();
-
+            for (PanelState state : currentPanelStates) {
                 try {
-                    Category category = Category.valueOf(title.toUpperCase());
-                    int x = (int) state[0];
-                    int y = (int) state[1];
-                    boolean collapsed = (boolean) state[2];
-                    this.createAndPopulatePanel(category, x, y, collapsed);
+                    Category category = Category.valueOf(state.title().toUpperCase());
+                    this.createAndPopulatePanel(category, state.x(), state.y(), state.collapsed());
                 } catch (IllegalArgumentException e) {
-                    logger.error("No category with the specified name", e);
+                    logger.error("No category found for title '{}' from config. Skipping panel.", state.title(), e);
+                } catch (Exception e) {
+                    logger.error("Error creating panel for '{}' from config.", state.title(), e);
                 }
             }
         }
@@ -65,22 +81,29 @@ public class ModuleScreen extends Screen {
     private void createAndPopulatePanel(Category category, int x, int y, boolean collapsed) {
         Set<ModuleBase> modules = manager.getModulesByCategoryMap().get(category);
         CategoryPanelWidget panelWidget = new CategoryPanelWidget(category.getFriendlyName(), x, y, this.width, this.height, collapsed);
-        modules.forEach(panelWidget::addModuleEntry);
+        if (!modules.isEmpty()) modules.forEach(panelWidget::addModuleEntry);
+        else logger.warn("No modules was registered for the category {}", category.name());
         panels.add(panelWidget);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void close() {
+        this.saveStates();
+        this.client.setScreen(parent);
+        manager.setModuleActive(GUI.class, false);
+    }
 
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         boolean skip = false;
         for (CategoryPanelWidget panel : panels.reversed()) {
             if (panel.isMouseOver(mouseX, mouseY) && !skip) {
                 panel.setHovered(true);
                 skip = true;
-            } else panel.setHovered(false);
+            } else {
+                panel.setHovered(false);
+            }
         }
-
         panels.forEach(panel -> panel.render(context, mouseX, mouseY, delta));
     }
 
@@ -100,22 +123,17 @@ public class ModuleScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        for (CategoryPanelWidget panel : panels.reversed()) {
-            if (panel.isDragging()) {
+        for (CategoryPanelWidget panel : panels.reversed())
+            if (panel.isDragging())
                 return panel.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
-            }
-        }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         boolean released = false;
-        for (CategoryPanelWidget panel : panels.reversed()) {
-            if (panel.mouseReleased(mouseX, mouseY, button)) {
-                released = true;
-            }
-        }
+        for (CategoryPanelWidget panel : panels.reversed())
+            if (panel.mouseReleased(mouseX, mouseY, button)) released = true;
         return super.mouseReleased(mouseX, mouseY, button) || released;
     }
 
@@ -131,18 +149,5 @@ public class ModuleScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    @Override
-    public void close() {
-        for (CategoryPanelWidget panel : panels) {
-            lastPanelsStates.put(panel.getTitle(), new Object[]{
-                    panel.getX(),
-                    panel.getY(),
-                    panel.isCollapsed()
-            });
-        }
-        this.client.setScreen(parent);
-        manager.setModuleActive(GUI.class, false);
     }
 }

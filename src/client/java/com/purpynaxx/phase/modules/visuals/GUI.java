@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.modules.visuals;
 
+import com.purpynaxx.phase.gui.ModuleScreen;
 import com.purpynaxx.phase.modules.impl.ModuleBase;
-import com.purpynaxx.phase.ui.ModuleScreen;
 
 public class GUI extends ModuleBase {
 
