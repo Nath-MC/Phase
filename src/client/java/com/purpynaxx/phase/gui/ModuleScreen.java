@@ -9,6 +9,7 @@ import com.purpynaxx.phase.modules.impl.Category;
 import com.purpynaxx.phase.modules.impl.ModuleBase;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
@@ -39,11 +40,19 @@ public class ModuleScreen extends Screen {
     private void saveStates() {
         List<PanelState> statesToSave = new ArrayList<>();
         for (CategoryPanelWidget panel : panels)
-            statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed()));
+            statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed(), this.width, this.height));
         ConfigManager.saveData(savedStatesFile, panelStatesListCodec, statesToSave);
         currentPanelStates = new ArrayList<>(statesToSave);
     }
 
+
+    @Override
+    public void resize(MinecraftClient client, int width, int height) {
+        this.width = width;
+        this.height = height;
+        this.saveStates();
+        this.init();
+    }
 
     @Override
     protected void init() {
@@ -68,7 +77,9 @@ public class ModuleScreen extends Screen {
             for (PanelState state : currentPanelStates) {
                 try {
                     Category category = Category.valueOf(state.title().toUpperCase());
-                    this.createAndPopulatePanel(category, state.x(), state.y(), state.collapsed());
+                    int x = state.screenWidth() == this.width ? state.x() : (int) ((float) state.x() / (float) state.screenWidth() * this.width);
+                    int y = state.screenHeight() == this.height ? state.y() : (int) ((float) state.y() / (float) state.screenHeight() * this.height);
+                    this.createAndPopulatePanel(category, x, y, state.collapsed());
                 } catch (IllegalArgumentException e) {
                     logger.error("No category found for title '{}' from config. Skipping panel.", state.title(), e);
                 } catch (Exception e) {
