@@ -1,19 +1,16 @@
 package com.purpynaxx.phase.config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JsonOps;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -21,7 +18,7 @@ import java.util.function.Supplier;
 public final class ConfigManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final String root = "data";
 
     /**
      * Resolves a config file path within the default mod config directory.
@@ -35,16 +32,16 @@ public final class ConfigManager {
         File configFile = new File(modBaseDir, path);
         File parentDir = configFile.getParentFile();
 
-        if (parentDir != null && !parentDir.exists()) {
+        if (parentDir != null && !parentDir.exists())
             if (!parentDir.mkdirs())
                 logger.error("Could not create parent directories for config file: {}", parentDir.getAbsolutePath());
-        }
 
         return configFile;
     }
 
     /**
-     * Saves data to a JSON file using the provided Codec.
+     * Saves data to an NBT file using the provided Codec.
+     * The data is wrapped in a root NbtCompound with a specific key.
      *
      * @param file  The file to save to.
      * @param codec The Codec for the data type T.
@@ -52,18 +49,23 @@ public final class ConfigManager {
      * @param <T>   The type of the data.
      */
     public static <T> void saveData(File file, Codec<T> codec, T data) {
-        DataResult<JsonElement> result = codec.encodeStart(JsonOps.INSTANCE, data);
-        Optional<JsonElement> jsonElementOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to encode data to JSON for file {}: {}", file.getName(), errorMsg)).orElseThrow());
+        DataResult<NbtElement> result = codec.encodeStart(NbtOps.INSTANCE, data);
+        Optional<NbtElement> nbtElementOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to encode data to NBT for file {}: {}", file.getName(), errorMsg)).orElseThrow());
 
-        try (FileWriter writer = new FileWriter(file)) {
-            gson.toJson(jsonElementOptional.get(), writer);
+        NbtElement encodedElement = nbtElementOptional.get();
+        NbtCompound rootCompound = new NbtCompound();
+        rootCompound.put(root, encodedElement);
+
+        try {
+            NbtIo.write(rootCompound, file.toPath());
         } catch (IOException e) {
             logger.error("Failed to write data to config file: {}", file.getAbsolutePath(), e);
         }
     }
 
     /**
-     * Loads data from a JSON file using the provided Codec.
+     * Loads data from an NBT file using the provided Codec.
+     * It expects the data to be wrapped in a root NbtCompound with a specific key.
      *
      * @param file            The file to load from.
      * @param codec           The Codec for the data type T.
@@ -75,19 +77,18 @@ public final class ConfigManager {
         if (!file.exists())
             return defaultSupplier.get();
 
-        try (FileReader reader = new FileReader(file)) {
-            JsonElement jsonElement = JsonParser.parseReader(reader);
-            DataResult<T> result = codec.parse(JsonOps.INSTANCE, jsonElement);
+        try {
+            NbtCompound rootCompound = NbtIo.read((file.toPath()));
 
-            Optional<T> loadedDataOptional = result.resultOrPartial(errorMsg -> logger.error("Failed to parse data from config file {}: {}", file.getName(), errorMsg));
-
-            if (loadedDataOptional.isPresent()) {
+            if (rootCompound != null && rootCompound.contains(root)) {
+                NbtElement encodedElement = rootCompound.get(root);
+                DataResult<T> result = codec.parse(NbtOps.INSTANCE, encodedElement);
+                Optional<T> loadedDataOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to parse data from config file {}: {}", file.getName(), errorMsg)).orElseThrow());
                 return loadedDataOptional.get();
             } else {
-                logger.warn("Could not fully decode data from {}, using default data.", file.getName());
+                logger.warn("Config file {} does not contain the expected root key '{}', using default data.", file.getName(), root);
                 return defaultSupplier.get();
             }
-
         } catch (IOException e) {
             logger.error("Failed to read config file {}:", file.getAbsolutePath(), e);
             return defaultSupplier.get();

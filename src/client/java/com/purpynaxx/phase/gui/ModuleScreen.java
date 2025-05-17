@@ -23,7 +23,7 @@ import static com.purpynaxx.phase.Phase.logger;
 public class ModuleScreen extends Screen {
 
     private static final File savedStatesFile = ConfigManager.getConfigFile("gui/states.nbt");
-    private static final Codec<List<PanelState>> PANEL_STATE_LIST_CODEC = Codec.list(PanelState.CODEC);
+    private static final Codec<List<PanelState>> panelStatesListCodec = Codec.list(PanelState.CODEC);
 
     private static List<PanelState> currentPanelStates = new ArrayList<>();
     private final List<CategoryPanelWidget> panels = new ArrayList<>();
@@ -40,7 +40,7 @@ public class ModuleScreen extends Screen {
         List<PanelState> statesToSave = new ArrayList<>();
         for (CategoryPanelWidget panel : panels)
             statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed()));
-        ConfigManager.saveData(savedStatesFile, PANEL_STATE_LIST_CODEC, statesToSave);
+        ConfigManager.saveData(savedStatesFile, panelStatesListCodec, statesToSave);
         currentPanelStates = new ArrayList<>(statesToSave);
     }
 
@@ -48,11 +48,11 @@ public class ModuleScreen extends Screen {
     @Override
     protected void init() {
         this.panels.clear();
-        currentPanelStates = ConfigManager.loadData(savedStatesFile, PANEL_STATE_LIST_CODEC, ArrayList::new);
-        if (currentPanelStates.isEmpty()) {
+        currentPanelStates = ConfigManager.loadData(savedStatesFile, panelStatesListCodec, ArrayList::new);
+        int categories = manager.getCategories().size();
+        if (currentPanelStates.isEmpty() || categories != currentPanelStates.size()) {
             logger.info("Using default configuration");
             int index = 0;
-            int categories = manager.getCategories().size();
             final int padding = 16;
             final int panelWidth = 100;
             int totalPanelsAndPaddingWidth = (categories * panelWidth) + Math.max(0, categories - 1) * padding;
@@ -95,14 +95,13 @@ public class ModuleScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        context.fill(0, 0, this.width, this.height, 0x67000000);
         boolean skip = false;
         for (CategoryPanelWidget panel : panels.reversed()) {
             if (panel.isMouseOver(mouseX, mouseY) && !skip) {
                 panel.setHovered(true);
                 skip = true;
-            } else {
-                panel.setHovered(false);
-            }
+            } else panel.setHovered(false);
         }
         panels.forEach(panel -> panel.render(context, mouseX, mouseY, delta));
     }
