@@ -32,7 +32,6 @@ public class CategoryPanelWidget implements Drawable, Element {
 
     private final int screenWidth;
     private final int screenHeight;
-
     private int height;
 
     private int x;
@@ -204,22 +203,12 @@ public class CategoryPanelWidget implements Drawable, Element {
         int x = (int) (mouseX - this.dragOffsetX);
         int y = (int) (mouseY - this.dragOffsetY);
 
-        if (x + width <= screenWidth && x >= 0)
-            this.setX(x);
-        else if (x + width != screenWidth) {
-            if (x + width > screenWidth / 2)
-                this.setX(screenWidth - width);
-            else this.setX(0);
-        }
+        int clampedX = Math.clamp(x, 0, screenWidth - width);
+        int clampedY = Math.clamp(y, 0, screenHeight - titleBarHeight);
 
-        if (y + titleBarHeight <= screenHeight && y >= 0)
-            this.setY(y);
-        else if (y + titleBarHeight != screenHeight) {
-            if (y + titleBarHeight > screenHeight / 2)
-                this.setY(screenHeight - titleBarHeight);
-            else this.setY(0);
-        }
-
+        this.setX(clampedX);
+        this.setY(clampedY);
+        
         int currentY = this.y + titleBarHeight;
 
         for (Drawable drawable : this.drawables) {

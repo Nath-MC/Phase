@@ -48,9 +48,9 @@ public class ModuleScreen extends Screen {
 
     @Override
     public void resize(MinecraftClient client, int width, int height) {
+        this.saveStates();
         this.width = width;
         this.height = height;
-        this.saveStates();
         this.init();
     }
 
@@ -79,6 +79,9 @@ public class ModuleScreen extends Screen {
                     Category category = Category.valueOf(state.title().toUpperCase());
                     int x = state.screenWidth() == this.width ? state.x() : (int) ((float) state.x() / (float) state.screenWidth() * this.width);
                     int y = state.screenHeight() == this.height ? state.y() : (int) ((float) state.y() / (float) state.screenHeight() * this.height);
+                    x = Math.clamp(x, 0, this.width - 100);
+                    y = Math.clamp(y, 0, this.height - 15);
+
                     this.createAndPopulatePanel(category, x, y, state.collapsed());
                 } catch (IllegalArgumentException e) {
                     logger.error("No category found for title '{}' from config. Skipping panel.", state.title(), e);
