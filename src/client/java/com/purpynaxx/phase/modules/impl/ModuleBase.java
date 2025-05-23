@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.modules.impl;
 
+import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,13 +14,17 @@ public abstract class ModuleBase {
     protected final String desc;
     protected final Logger logger;
     protected final MinecraftClient client = MinecraftClient.getInstance();
-    protected boolean active;
+    protected Setting<Boolean> active;
 
     protected ModuleBase(String desc) {
         this.category = this.setCategory();
         this.name = this.getClass().getSimpleName();
         this.desc = desc;
-        this.active = false;
+        this.active = new Setting<>(
+                "Active",
+                "Current module state",
+                false
+        );
         this.logger = LoggerFactory.getLogger(this.name);
     }
 
@@ -41,11 +46,11 @@ public abstract class ModuleBase {
     }
 
     public final boolean isActive() {
-        return active;
+        return active.getValue();
     }
 
     public final void setActive(boolean active) {
-        this.active = active;
+        this.active.setValue(active);
         if (active) this.onActivation();
         else this.onDeactivation();
     }

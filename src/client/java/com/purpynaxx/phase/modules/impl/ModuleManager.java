@@ -1,17 +1,19 @@
 package com.purpynaxx.phase.modules.impl;
 
 import com.purpynaxx.phase.Phase;
+import com.purpynaxx.phase.settings.Setting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import static com.purpynaxx.phase.Phase.logger;
 
-public class ModuleManager {
+public final class ModuleManager {
 
     private final Set<ModuleBase> modules = new HashSet<>();
     private final Set<Category> categories = new HashSet<>();
@@ -108,6 +110,32 @@ public class ModuleManager {
     public void toggleModuleActive(@NotNull ModuleBase module) {
         boolean active = module.isActive();
         this.setModuleActive(module, !active);
+    }
+
+    public Setting<?> getSetting(ModuleBase module, String name) throws NoSuchFieldException, IllegalAccessException {
+        Class<? extends ModuleBase> moduleClass = module.getClass();
+        Field field = moduleClass.getField(name);
+        field.setAccessible(true);
+        return (Setting<?>) field.get(module);
+    }
+
+    public @UnmodifiableView List<Setting<?>> getSettings(ModuleBase module) {
+        Class<? extends ModuleBase> moduleClass = module.getClass();
+        Field[] classFields = moduleClass.getFields();
+        List<Setting<?>> moduleSettings = new ArrayList<>();
+
+        for (Field field : classFields) {
+            if (field.getType().isAssignableFrom(Setting.class)) {
+                try {
+                    field.setAccessible(true);
+                    Setting<?> setting = (Setting<?>) field.get(module);
+                    moduleSettings.add(setting);
+                } catch (IllegalAccessException e) {
+                    logger.error("Could not retrieve setting \"{}\" from {} :", field.getName(), module.getName(), new RuntimeException(e));
+                }
+            }
+        }
+        return moduleSettings;
     }
 
     private static class Holder {
