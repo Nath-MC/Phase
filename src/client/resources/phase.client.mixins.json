@@ -3,7 +3,8 @@
   "package": "com.purpynaxx.phase.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ClientConnectionMixin"
+    "ClientConnectionMixin",
+    "accessors.PlayerMoveC2SPacketAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

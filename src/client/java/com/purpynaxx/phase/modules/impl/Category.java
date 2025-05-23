@@ -1,7 +1,8 @@
 package com.purpynaxx.phase.modules.impl;
 
 public enum Category {
-    VISUALS;
+    VISUALS,
+    MOVEMENTS;
 
     public String getFriendlyName() {
         String name = this.name();
