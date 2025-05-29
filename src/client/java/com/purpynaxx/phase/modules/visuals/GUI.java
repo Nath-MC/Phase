@@ -1,9 +1,9 @@
 package com.purpynaxx.phase.modules.visuals;
 
 import com.purpynaxx.phase.gui.ModuleScreen;
-import com.purpynaxx.phase.modules.impl.ModuleBase;
+import com.purpynaxx.phase.modules.impl.Module;
 
-public class GUI extends ModuleBase {
+public class GUI extends Module {
 
     private final static String title = "Config Screen";
 

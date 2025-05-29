@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.gui.widgets;
 
-import com.purpynaxx.phase.modules.impl.ModuleBase;
+import com.purpynaxx.phase.modules.impl.Module;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Drawable;
@@ -16,7 +16,7 @@ public class ModuleWidget implements Element, Selectable, Drawable {
 
     private static final float ANIMATION_SPEED = 0.1f;
 
-    private final ModuleBase module;
+    private final Module module;
 
     private final TextRenderer textRenderer;
     private final Text message;
@@ -31,7 +31,7 @@ public class ModuleWidget implements Element, Selectable, Drawable {
     private int x;
     private int y;
 
-    public ModuleWidget(ModuleBase module, int x, int y, int width, int height, TextRenderer textRenderer) {
+    public ModuleWidget(Module module, int x, int y, int width, int height, TextRenderer textRenderer) {
         this.module = module;
         this.x = x;
         this.y = y;

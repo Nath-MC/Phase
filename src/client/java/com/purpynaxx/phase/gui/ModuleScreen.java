@@ -5,8 +5,7 @@ import com.purpynaxx.phase.Phase;
 import com.purpynaxx.phase.config.ConfigManager;
 import com.purpynaxx.phase.gui.serialization.PanelState;
 import com.purpynaxx.phase.gui.widgets.CategoryPanelWidget;
-import com.purpynaxx.phase.modules.impl.Category;
-import com.purpynaxx.phase.modules.impl.ModuleBase;
+import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
 import net.minecraft.client.MinecraftClient;
@@ -39,7 +38,7 @@ public class ModuleScreen extends Screen {
 
     private void saveStates() {
         List<PanelState> statesToSave = new ArrayList<>();
-        for (CategoryPanelWidget panel : panels)
+        for (CategoryPanelWidget panel : this.panels)
             statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed(), this.width, this.height));
         ConfigManager.saveData(savedStatesFile, panelStatesListCodec, statesToSave);
         currentPanelStates = new ArrayList<>(statesToSave);
@@ -58,7 +57,7 @@ public class ModuleScreen extends Screen {
     protected void init() {
         this.panels.clear();
         currentPanelStates = ConfigManager.loadData(savedStatesFile, panelStatesListCodec, ArrayList::new);
-        int categories = manager.getCategories().size();
+        int categories = this.manager.getCategories().size();
         if (currentPanelStates.isEmpty() || categories != currentPanelStates.size()) {
             logger.info("Using default configuration");
             int index = 0;
@@ -67,7 +66,7 @@ public class ModuleScreen extends Screen {
             int totalPanelsAndPaddingWidth = (categories * panelWidth) + Math.max(0, categories - 1) * padding;
             int startX = (this.width - totalPanelsAndPaddingWidth) / 2;
 
-            for (Category category : manager.getCategories()) {
+            for (Module.Category category : this.manager.getCategories()) {
                 int x = startX + (index * panelWidth) + (index * padding);
                 int y = this.height / 10;
                 this.createAndPopulatePanel(category, x, y, false);
@@ -76,7 +75,7 @@ public class ModuleScreen extends Screen {
         } else {
             for (PanelState state : currentPanelStates) {
                 try {
-                    Category category = Category.valueOf(state.title().toUpperCase());
+                    Module.Category category = Module.Category.valueOf(state.title().toUpperCase());
                     int x = state.screenWidth() == this.width ? state.x() : (int) ((float) state.x() / (float) state.screenWidth() * this.width);
                     int y = state.screenHeight() == this.height ? state.y() : (int) ((float) state.y() / (float) state.screenHeight() * this.height);
                     x = Math.clamp(x, 0, this.width - 100);
@@ -92,41 +91,41 @@ public class ModuleScreen extends Screen {
         }
     }
 
-    private void createAndPopulatePanel(Category category, int x, int y, boolean collapsed) {
-        Set<ModuleBase> modules = manager.getModulesByCategoryMap().get(category);
+    private void createAndPopulatePanel(Module.Category category, int x, int y, boolean collapsed) {
+        Set<Module> modules = this.manager.getModulesByCategoryMap().get(category);
         CategoryPanelWidget panelWidget = new CategoryPanelWidget(category.getFriendlyName(), x, y, this.width, this.height, collapsed);
         if (!modules.isEmpty()) modules.forEach(panelWidget::addModuleEntry);
         else logger.warn("No modules was registered for the category {}", category.name());
-        panels.add(panelWidget);
+        this.panels.add(panelWidget);
     }
 
     @Override
     public void close() {
         this.saveStates();
-        this.client.setScreen(parent);
-        manager.setModuleActive(GUI.class, false);
+        this.client.setScreen(this.parent);
+        this.manager.setModuleActive(GUI.class, false);
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, this.width, this.height, 0x67000000);
         boolean skip = false;
-        for (CategoryPanelWidget panel : panels.reversed()) {
+        for (CategoryPanelWidget panel : this.panels.reversed()) {
             if (panel.isMouseOver(mouseX, mouseY) && !skip) {
                 panel.setHovered(true);
                 skip = true;
             } else panel.setHovered(false);
         }
-        panels.forEach(panel -> panel.render(context, mouseX, mouseY, delta));
+        this.panels.forEach(panel -> panel.render(context, mouseX, mouseY, delta));
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        for (CategoryPanelWidget panel : panels.reversed()) {
+        for (CategoryPanelWidget panel : this.panels.reversed()) {
             if (panel.mouseClicked(mouseX, mouseY, button)) {
-                if (panels.indexOf(panel) != panels.size() - 1) {
-                    panels.remove(panel);
-                    panels.add(panel);
+                if (this.panels.indexOf(panel) != this.panels.size() - 1) {
+                    this.panels.remove(panel);
+                    this.panels.add(panel);
                 }
                 return true;
             }
@@ -136,7 +135,7 @@ public class ModuleScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        for (CategoryPanelWidget panel : panels.reversed())
+        for (CategoryPanelWidget panel : this.panels.reversed())
             if (panel.isDragging())
                 return panel.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
@@ -145,7 +144,7 @@ public class ModuleScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         boolean released = false;
-        for (CategoryPanelWidget panel : panels.reversed())
+        for (CategoryPanelWidget panel : this.panels.reversed())
             if (panel.mouseReleased(mouseX, mouseY, button)) released = true;
         return super.mouseReleased(mouseX, mouseY, button) || released;
     }

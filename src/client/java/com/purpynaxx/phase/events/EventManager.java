@@ -2,7 +2,7 @@ package com.purpynaxx.phase.events;
 
 import com.purpynaxx.phase.events.listeners.*;
 import com.purpynaxx.phase.events.network.PacketCallback;
-import com.purpynaxx.phase.modules.impl.ModuleBase;
+import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -26,13 +26,13 @@ public class EventManager {
     }
 
     public void init() {
-        Set<ModuleBase> modules = this.getModules();
+        Set<Module> modules = this.getModules();
         int listenersRegistered = 0;
         int modulesScanned = 0;
 
         logger.info("Starting event registration...");
 
-        for (ModuleBase module : modules) {
+        for (Module module : modules) {
             modulesScanned++;
             boolean registeredAny = false;
 
@@ -163,17 +163,17 @@ public class EventManager {
         logger.info("{} listeners were registered across {} scanned modules.", listenersRegistered, modulesScanned);
     }
 
-    private void logRegistration(ModuleBase module, String listenerType) {
+    private void logRegistration(Module module, String listenerType) {
         if (isDevEnvironment) {
             logger.info("Registered {} as {}", module.getName(), listenerType);
         }
     }
 
-    private void logListenerError(ModuleBase module, String methodName, Exception e) {
+    private void logListenerError(Module module, String methodName, Exception e) {
         logger.error("Exception in listener method \"{}\" in module \"{}\": {}", methodName, module.getName(), e.getMessage(), e);
     }
 
-    private @Unmodifiable Set<ModuleBase> getModules() {
+    private @Unmodifiable Set<Module> getModules() {
         return moduleManager.getModules();
     }
 

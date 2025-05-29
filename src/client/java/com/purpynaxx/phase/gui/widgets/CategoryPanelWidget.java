@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.gui.widgets;
 
-import com.purpynaxx.phase.modules.impl.ModuleBase;
+import com.purpynaxx.phase.modules.impl.Module;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -57,7 +57,7 @@ public class CategoryPanelWidget implements Drawable, Element {
         this.collapsed = collapsed;
     }
 
-    public void addModuleEntry(ModuleBase module) {
+    public void addModuleEntry(Module module) {
         int height = 16;
         int x = this.x;
         int y = this.y + titleBarHeight + children.size() * height;

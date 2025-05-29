@@ -2,12 +2,12 @@ package com.purpynaxx.phase.modules.movements;
 
 import com.purpynaxx.phase.events.listeners.PacketSendListener;
 import com.purpynaxx.phase.mixin.accessors.PlayerMoveC2SPacketAccessor;
-import com.purpynaxx.phase.modules.impl.ModuleBase;
+import com.purpynaxx.phase.modules.impl.Module;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-public class NoFall extends ModuleBase implements PacketSendListener {
+public class NoFall extends Module implements PacketSendListener {
 
     private NoFall() {
         super("Cancel fall damage");

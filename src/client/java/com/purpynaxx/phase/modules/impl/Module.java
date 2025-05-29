@@ -1,30 +1,26 @@
 package com.purpynaxx.phase.modules.impl;
 
-import com.purpynaxx.phase.settings.Setting;
+import com.purpynaxx.phase.settings.BooleanSetting;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 
-public abstract class ModuleBase {
+public abstract class Module {
 
     protected final Category category;
     protected final String name;
     protected final String desc;
     protected final Logger logger;
     protected final MinecraftClient client = MinecraftClient.getInstance();
-    protected Setting<Boolean> active;
+    protected BooleanSetting active;
 
-    protected ModuleBase(String desc) {
+    protected Module(String desc) {
         this.category = this.setCategory();
         this.name = this.getClass().getSimpleName();
         this.desc = desc;
-        this.active = new Setting<>(
-                "Active",
-                "Current module state",
-                false
-        );
+        this.active = new BooleanSetting("Active", "Current module state", false);
         this.logger = LoggerFactory.getLogger(this.name);
     }
 
@@ -50,12 +46,28 @@ public abstract class ModuleBase {
     }
 
     public final void setActive(boolean active) {
-        this.active.setValue(active);
-        if (active) this.onActivation();
+        if (active == this.active.getValue()) return;
+        this.toggle();
+    }
+
+    public final void toggle() {
+        this.active.toggle();
+        boolean currentState = this.active.getValue();
+        if (currentState) this.onActivation();
         else this.onDeactivation();
     }
 
     public void onActivation() {}
 
     public void onDeactivation() {}
+
+    public enum Category {
+        VISUALS,
+        MOVEMENTS;
+
+        public String getFriendlyName() {
+            String name = this.name();
+            return name.charAt(0) + name.substring(1).toLowerCase();
+        }
+    }
 }

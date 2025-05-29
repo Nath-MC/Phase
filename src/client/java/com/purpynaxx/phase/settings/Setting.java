@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.settings;
 
-public class Setting<T> {
+public abstract class Setting<T> {
 
     private final String name;
     private final String description;
@@ -31,5 +31,9 @@ public class Setting<T> {
 
     public void setValue(T value) {
         this.value = value;
+    }
+
+    public void resetValue() {
+        this.value = this.defaultValue;
     }
 }
