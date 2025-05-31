@@ -14,7 +14,7 @@ public abstract class Module {
     protected final String desc;
     protected final Logger logger;
     protected final MinecraftClient client = MinecraftClient.getInstance();
-    protected BooleanSetting active;
+    protected final BooleanSetting active;
 
     protected Module(String desc) {
         this.category = this.setCategory();

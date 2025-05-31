@@ -3,8 +3,6 @@ package com.purpynaxx.phase.modules.visuals;
 import com.purpynaxx.phase.gui.ModuleScreen;
 import com.purpynaxx.phase.modules.impl.Module;
 
-import java.util.concurrent.CompletableFuture;
-
 public class GUI extends Module {
 
     private final static String title = "Config Screen";
@@ -17,7 +15,7 @@ public class GUI extends Module {
     public void onActivation() {
         if (this.client.isFinishedLoading())
             this.client.setScreen(new ModuleScreen(title, this.client.currentScreen));
-        else CompletableFuture.runAsync(() -> {
+        else Thread.startVirtualThread(() -> {
             while (!this.client.isFinishedLoading()) {
                 try {
                     Thread.sleep(50);
