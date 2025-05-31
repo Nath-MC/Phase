@@ -4,7 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ClientConnectionMixin",
-    "accessors.PlayerMoveC2SPacketAccessor"
+    "accessors.PlayerMoveC2SPacketAccessor",
+    "accessors.TitleScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

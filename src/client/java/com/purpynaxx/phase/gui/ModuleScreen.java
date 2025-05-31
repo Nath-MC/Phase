@@ -3,6 +3,7 @@ package com.purpynaxx.phase.gui;
 import com.mojang.serialization.Codec;
 import com.purpynaxx.phase.Phase;
 import com.purpynaxx.phase.config.ConfigManager;
+import com.purpynaxx.phase.gui.serialization.Container;
 import com.purpynaxx.phase.gui.serialization.PanelState;
 import com.purpynaxx.phase.gui.widgets.CategoryPanelWidget;
 import com.purpynaxx.phase.modules.impl.Module;
@@ -22,10 +23,10 @@ import static com.purpynaxx.phase.Phase.logger;
 
 public class ModuleScreen extends Screen {
 
-    private static final File savedStatesFile = ConfigManager.getConfigFile("gui/states.nbt");
-    private static final Codec<List<PanelState>> panelStatesListCodec = Codec.list(PanelState.CODEC);
+    private static final File savedStatesFile = ConfigManager.getConfigFile("gui/states");
+    private static final Codec<Container> containerCodec = Container.CODEC;
 
-    private static List<PanelState> currentPanelStates = new ArrayList<>();
+    private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
     private final List<CategoryPanelWidget> panels = new ArrayList<>();
     private final ModuleManager manager = ModuleManager.getInstance();
     private final Screen parent;
@@ -39,9 +40,10 @@ public class ModuleScreen extends Screen {
     private void saveStates() {
         List<PanelState> statesToSave = new ArrayList<>();
         for (CategoryPanelWidget panel : this.panels)
-            statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed(), this.width, this.height));
-        ConfigManager.saveData(savedStatesFile, panelStatesListCodec, statesToSave);
-        currentPanelStates = new ArrayList<>(statesToSave);
+            statesToSave.add(new PanelState(panel.getTitle(), panel.getX(), panel.getY(), panel.isCollapsed()));
+        Container container = new Container(statesToSave, this.width, this.height);
+        ConfigManager.saveData(savedStatesFile, containerCodec, container);
+        currentContainer = container;
     }
 
 
@@ -56,9 +58,10 @@ public class ModuleScreen extends Screen {
     @Override
     protected void init() {
         this.panels.clear();
-        currentPanelStates = ConfigManager.loadData(savedStatesFile, panelStatesListCodec, ArrayList::new);
+        currentContainer = ConfigManager.loadData(savedStatesFile, containerCodec, () -> new Container(new ArrayList<>(), this.width, this.height));
+        List<PanelState> savedStates = currentContainer.panelStates();
         int categories = this.manager.getCategories().size();
-        if (currentPanelStates.isEmpty() || categories != currentPanelStates.size()) {
+        if (savedStates.isEmpty() || categories != savedStates.size()) {
             logger.info("Using default configuration");
             int index = 0;
             final int padding = 16;
@@ -73,11 +76,14 @@ public class ModuleScreen extends Screen {
                 index++;
             }
         } else {
-            for (PanelState state : currentPanelStates) {
+            int savedWidth = currentContainer.screenWidth();
+            int savedHeight = currentContainer.screenHeight();
+
+            for (PanelState state : savedStates) {
                 try {
                     Module.Category category = Module.Category.valueOf(state.title().toUpperCase());
-                    int x = state.screenWidth() == this.width ? state.x() : (int) ((float) state.x() / (float) state.screenWidth() * this.width);
-                    int y = state.screenHeight() == this.height ? state.y() : (int) ((float) state.y() / (float) state.screenHeight() * this.height);
+                    int x = savedWidth == this.width ? state.x() : (int) ((float) state.x() / (float) savedWidth * this.width);
+                    int y = savedHeight == this.height ? state.y() : (int) ((float) state.y() / (float) savedHeight * this.height);
                     x = Math.clamp(x, 0, this.width - 100);
                     y = Math.clamp(y, 0, this.height - 15);
 
@@ -108,6 +114,8 @@ public class ModuleScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (this.client.world == null)
+            this.renderPanoramaBackground(context, delta);
         context.fill(0, 0, this.width, this.height, 0x67000000);
         boolean skip = false;
         for (CategoryPanelWidget panel : this.panels.reversed()) {

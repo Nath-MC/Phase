@@ -1,12 +1,18 @@
 package com.purpynaxx.phase;
 
+import com.purpynaxx.phase.config.ModuleConfigManager;
 import com.purpynaxx.phase.events.EventManager;
+import com.purpynaxx.phase.mixin.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
+import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -22,7 +28,7 @@ public class Phase implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-
+        long startTime = System.currentTimeMillis();
         ModuleManager moduleManager = ModuleManager.getInstance();
         if (!moduleManager.init()) // Register modules and check result
             logger.warn("Some modules were not instanced properly ! Please check errors above.");
@@ -30,15 +36,27 @@ public class Phase implements ClientModInitializer {
         EventManager.getInstance().init();
 
         keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.phase.open_menu",
+                "phase.open_menu.key",
                 InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_V,
-                "category.phase.general"
+                GLFW.GLFW_KEY_RIGHT_SHIFT,
+                "phase.general.category"
         ));
 
+        ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+            if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade() && moduleManager.isModuleActive(GUI.class))
+                ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
+            ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
+                if (keyBinding.matchesKey(key, scancode))
+                    moduleManager.toggleModuleActive(GUI.class);
+            });
+        });
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (keyBinding.wasPressed())
+            if (client.currentScreen == null && keyBinding.wasPressed())
                 moduleManager.toggleModuleActive(GUI.class);
         });
+
+        ClientLifecycleEvents.CLIENT_STOPPING.register(minecraftClient -> ModuleConfigManager.saveAllModules());
+        logger.info("Phase initialized in {}ms", System.currentTimeMillis() - startTime);
     }
 }

@@ -15,7 +15,7 @@ public class NoFall extends Module implements PacketSendListener {
 
     @Override
     public void onPacketSend(Packet<?> packet, CallbackInfo event) {
-        if (packet instanceof PlayerMoveC2SPacket movePacket && client.player.getGameMode().isSurvivalLike()) {
+        if (packet instanceof PlayerMoveC2SPacket movePacket && client.player.isLoaded() && client.player.getGameMode().isSurvivalLike()) {
             boolean packetOnGround = movePacket.isOnGround();
             if (!packetOnGround && client.player.fallDistance >= 2.9) {
                 ((PlayerMoveC2SPacketAccessor) movePacket).setOnGround(true);

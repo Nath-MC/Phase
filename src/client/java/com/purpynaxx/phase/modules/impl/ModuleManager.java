@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.modules.impl;
 
+import com.purpynaxx.phase.config.ModuleConfigManager;
 import com.purpynaxx.phase.settings.Setting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,12 +63,12 @@ public final class ModuleManager {
                 this.modulesByCategoryMap.get(category).add(module);
 
                 this.moduleSettings.putIfAbsent(moduleClass, new ArrayList<>());
-                Field[] fields = moduleClass.getFields();
+                Field[] fields = moduleClass.getDeclaredFields();
 
                 for (Field field : fields) {
                     if (Setting.class.isAssignableFrom(field.getType())) {
-                        Setting<?> setting = (Setting<?>) field.get(module);
-                        this.moduleSettings.get(moduleClass).add(setting);
+                        field.setAccessible(true);
+                        this.moduleSettings.get(moduleClass).add((Setting<?>) field.get(module));
                     }
                 }
             } catch (NoSuchMethodException e) {
@@ -80,6 +81,12 @@ public final class ModuleManager {
         if (this.failedInstantiation == 0)
             logger.info("{} modules were successfully initialized.", this.modules.size());
         else logger.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
+
+        try {
+            ModuleConfigManager.loadAllModules();
+        } catch (Exception e) {
+            logger.error("Failed to load module configurations", new RuntimeException(e));
+        }
 
         this.registered = true;
         return this.failedInstantiation == 0;
@@ -111,6 +118,13 @@ public final class ModuleManager {
         if (module != null) module.setActive(active);
     }
 
+    public <T extends Module> boolean isModuleActive(Class<T> clazz) {
+        if (clazz == null) return false;
+        T module = this.getModuleByClass(clazz);
+        if (module != null) return module.isActive();
+        return false;
+    }
+
     public <T extends Module> void toggleModuleActive(Class<T> clazz) {
         if (clazz == null) return;
         T module = this.getModuleByClass(clazz);
@@ -133,6 +147,7 @@ public final class ModuleManager {
         if (module == null) return Collections.emptyList();
         Class<? extends Module> moduleClass = module.getClass();
         List<Setting<?>> settings = this.moduleSettings.get(moduleClass);
+        if (settings == null) return Collections.emptyList();
         return Collections.unmodifiableList(settings);
     }
 
