@@ -1,4 +1,4 @@
 {
-  "phase.open_menu.key": "Ouvrir le menu",
-  "phase.general.category": "Phase"
+  "key.phase.open_menu": "Ouvrir le menu",
+  "key.categories.phase": "Phase"
 }

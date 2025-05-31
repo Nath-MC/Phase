@@ -49,7 +49,8 @@ dependencies {
         "fabric-lifecycle-events-v1",
         "fabric-networking-api-v1",
         "fabric-key-binding-api-v1",
-        "fabric-screen-api-v1"
+        "fabric-screen-api-v1",
+        "fabric-resource-loader-v0"
     )
 
     apiModules.forEach { module ->

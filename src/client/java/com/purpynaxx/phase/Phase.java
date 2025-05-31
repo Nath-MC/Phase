@@ -36,10 +36,10 @@ public class Phase implements ClientModInitializer {
         EventManager.getInstance().init();
 
         keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "phase.open_menu.key",
+                "key.phase.open_menu",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
-                "phase.general.category"
+                "key.categories.phase"
         ));
 
         ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
