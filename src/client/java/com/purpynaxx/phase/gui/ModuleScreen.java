@@ -13,6 +13,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,10 +30,10 @@ public class ModuleScreen extends Screen {
     private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
     private final List<CategoryPanelWidget> panels = new ArrayList<>();
     private final ModuleManager manager = ModuleManager.getInstance();
-    private final Screen parent;
+    private final @Nullable Screen parent;
 
 
-    public ModuleScreen(String title, Screen parent) {
+    public ModuleScreen(String title, @Nullable Screen parent) {
         super(Text.literal(title));
         this.parent = parent;
     }

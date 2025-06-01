@@ -42,7 +42,7 @@ public class Phase implements ClientModInitializer {
                 "key.categories.phase"
         ));
 
-        ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade() && moduleManager.isModuleActive(GUI.class))
                 ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
@@ -52,7 +52,7 @@ public class Phase implements ClientModInitializer {
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.currentScreen == null && keyBinding.wasPressed())
+            if (keyBinding.wasPressed())
                 moduleManager.toggleModuleActive(GUI.class);
         });
 

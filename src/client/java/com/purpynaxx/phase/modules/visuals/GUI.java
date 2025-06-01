@@ -20,7 +20,7 @@ public class GUI extends Module {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
-                    return;
+                    logger.error("Thread interrupted !", new RuntimeException(e));
                 }
             }
             this.client.execute(() -> this.client.setScreen(new ModuleScreen(title, this.client.currentScreen)));
@@ -29,8 +29,8 @@ public class GUI extends Module {
 
     @Override
     public void onDeactivation() {
-        if (this.client.currentScreen != null && this.client.currentScreen instanceof ModuleScreen)
-            this.client.setScreen(null);
+        if (this.client.currentScreen instanceof ModuleScreen moduleScreen)
+            moduleScreen.close();
     }
 
 }
