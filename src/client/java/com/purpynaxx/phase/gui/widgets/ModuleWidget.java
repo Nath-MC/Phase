@@ -1,44 +1,47 @@
 package com.purpynaxx.phase.gui.widgets;
 
 import com.purpynaxx.phase.modules.impl.Module;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 import java.awt.*;
 
-public class ModuleWidget implements Element, Selectable, Drawable {
+public class ModuleWidget implements Element, Drawable {
 
     private static final float ANIMATION_SPEED = 0.1f;
 
+    private static final TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+
     private final Module module;
 
-    private final TextRenderer textRenderer;
     private final Text message;
 
     private final int width;
     private final int height;
 
-    private float hoverAnimationProgress = 0.0f;
+    private final Tooltip tooltip;
+
+    private float hoverAnimationTimer = 0.0f;
+    private float tooltipTimer = 0.0f;
 
     private boolean hovered;
 
     private int x;
     private int y;
 
-    public ModuleWidget(Module module, int x, int y, int width, int height, TextRenderer textRenderer) {
+    public ModuleWidget(Module module, int x, int y, int width, int height) {
         this.module = module;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
         this.message = Text.of(module.getName());
-        this.textRenderer = textRenderer;
+        this.tooltip = module.getDesc() != null && !module.getDesc().isEmpty() ? new Tooltip(module.getDesc()) : null;
     }
 
     public Text getMessage() {
@@ -98,23 +101,32 @@ public class ModuleWidget implements Element, Selectable, Drawable {
         module.setActive(active);
     }
 
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        if (this.isHovered()) {
-            hoverAnimationProgress += delta * ANIMATION_SPEED * 5;
-        } else {
-            hoverAnimationProgress -= delta * ANIMATION_SPEED * 3;
+    public boolean hasTooltip() {
+        return tooltip != null;
+    }
+
+    public boolean isTooltipReady() {
+        return tooltipTimer >= 1.0f;
+    }
+
+    public void renderTooltip(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (tooltip != null && tooltipTimer >= 1.0f) {
+            tooltip.refreshPos(this.x, this.y, 108, 8, context.getScaledWindowWidth(), context.getScaledWindowHeight());
+            tooltip.render(context, mouseX, mouseY, delta);
         }
-        hoverAnimationProgress = MathHelper.clamp(hoverAnimationProgress, 0.0f, 1.0f);
+    }
+
+    public void render(DrawContext context, int mouseX, int mouseY, float delta, boolean renderTooltips) {
+        update(delta);
 
         int baseAlpha = 0;
         int hoverAlpha = 60;
-        int currentAlpha = MathHelper.lerp(hoverAnimationProgress, baseAlpha, hoverAlpha);
+        int currentAlpha = MathHelper.lerp(hoverAnimationTimer, baseAlpha, hoverAlpha);
 
-        if (this.isActive() && this.isHovered()) {
+        if (this.isActive()) {
             int color1 = new Color(255, 255, 255, 40).getRGB();
             int color2 = new Color(255, 255, 255, 70).getRGB();
-            int backgroundColor = interpolateColor(color1, color2, hoverAnimationProgress);
+            int backgroundColor = interpolateColor(color1, color2, hoverAnimationTimer);
             context.fill(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight(), backgroundColor);
         } else if (this.isActive())
             context.fill(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight(), new Color(255, 255, 255, 40).getRGB());
@@ -123,9 +135,29 @@ public class ModuleWidget implements Element, Selectable, Drawable {
 
         Text message = this.getMessage();
         int textX = this.getX() + this.getWidth() / 2 - textRenderer.getWidth(message) / 2;
-        int textY = this.getY() + (this.getHeight() - this.textRenderer.fontHeight) / 2 + 1;
-        int textColor = this.isActive() ? Color.WHITE.getRGB() : interpolateColor(Color.LIGHT_GRAY.getRGB(), Color.WHITE.getRGB(), hoverAnimationProgress);
-        context.drawText(this.textRenderer, message, textX, textY, textColor, false);
+        int textY = this.getY() + (this.getHeight() - textRenderer.fontHeight) / 2 + 1;
+        int textColor = this.isActive() ? Color.WHITE.getRGB() : interpolateColor(Color.LIGHT_GRAY.getRGB(), Color.WHITE.getRGB(), hoverAnimationTimer);
+        context.drawText(textRenderer, message, textX, textY, textColor, false);
+
+        if (renderTooltips) renderTooltip(context, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        render(context, mouseX, mouseY, delta, true);
+    }
+
+    private void update(float delta) {
+        if (this.isHovered()) {
+            hoverAnimationTimer += delta * ANIMATION_SPEED * 5;
+            tooltipTimer += delta * ANIMATION_SPEED;
+        } else {
+            hoverAnimationTimer -= delta * ANIMATION_SPEED * 3;
+            tooltipTimer = 0;
+        }
+
+        hoverAnimationTimer = Math.clamp(hoverAnimationTimer, 0.0f, 1.0f);
+        tooltipTimer = Math.clamp(tooltipTimer, 0.0f, 1.0f);
     }
 
     private int interpolateColor(int color1, int color2, float progress) {
@@ -148,8 +180,7 @@ public class ModuleWidget implements Element, Selectable, Drawable {
     }
 
     private void onClick(int button) {
-        if (button == 0)
-            this.setActive(!this.isActive());
+        if (button == 0) this.setActive(!this.isActive());
     }
 
     @Override
@@ -159,15 +190,5 @@ public class ModuleWidget implements Element, Selectable, Drawable {
             return true;
         }
         return false;
-    }
-
-    @Override
-    public SelectionType getType() {
-        return null;
-    }
-
-    @Override
-    public void appendNarrations(NarrationMessageBuilder builder) {
-
     }
 }

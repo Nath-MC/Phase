@@ -58,11 +58,11 @@ public class CategoryPanelWidget implements Drawable, Element {
     }
 
     public void addModuleEntry(Module module) {
-        int height = 16;
+        final int height = 16;
         int x = this.x;
         int y = this.y + titleBarHeight + children.size() * height;
 
-        ModuleWidget moduleWidget = new ModuleWidget(module, x, y, width, height, textRenderer);
+        ModuleWidget moduleWidget = new ModuleWidget(module, x, y, width, height);
 
         this.drawables.add(moduleWidget);
         this.children.add(moduleWidget);
@@ -85,40 +85,46 @@ public class CategoryPanelWidget implements Drawable, Element {
         this.y = y;
     }
 
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public ModuleWidget getHoveredModuleWidget() {
+        for (Element element : children)
+            if (element instanceof ModuleWidget widget && widget.isHovered())
+                return widget;
+        return null;
+    }
+
+    public void render(DrawContext context, int mouseX, int mouseY, float delta, boolean renderTooltips) {
         context.fill(x, y, x + width, y + titleBarHeight, titleBarColor);
         context.drawText(textRenderer, this.getTitle(), x + 4, y + (titleBarHeight - textRenderer.fontHeight) / 2 + 1, titleColor, false);
 
         if (this.isCollapsed()) {
-            context.drawBorder(x, y, width, titleBarHeight, borderColor);
+            context.drawBorder(x - 1, y - 1, width + 2, titleBarHeight + 2, borderColor);
             return;
         }
 
         context.fill(x, y + titleBarHeight, x + width, y + height, backgroundColor);
-        context.drawBorder(x, y, width, height, borderColor);
+        context.drawBorder(x - 1, y - 1, width + 2, height + 2, borderColor);
 
-        boolean skip = false;
-        for (Element element : children) {
-            if (this.isHovered() && !skip && element.isMouseOver(mouseX, mouseY)) {
-                ((ModuleWidget) element).setHovered(true);
-                skip = true;
-            } else ((ModuleWidget) element).setHovered(false);
-        }
 
-        int contentX = this.x + 1;
-        int contentY = y + titleBarHeight;
-        int contentEndX = x + width - 1;
-        int contentEndY = y + height - 1;
+        for (Element element : children)
+            ((ModuleWidget) element).setHovered(false);
 
-        if (contentEndX < contentX) contentEndX = contentX;
-        if (contentEndY < contentY) contentEndY = contentY;
 
-        context.enableScissor(contentX, contentY, contentEndX, contentEndY);
-        for (Drawable child : drawables) {
-            child.render(context, mouseX, mouseY, delta);
-        }
-        context.disableScissor();
+        if (this.isHovered())
+            for (Element element : children)
+                if (element.isMouseOver(mouseX, mouseY)) {
+                    ((ModuleWidget) element).setHovered(true);
+                    break;
+                }
+
+        for (Drawable child : drawables)
+            if (child instanceof ModuleWidget moduleWidget)
+                moduleWidget.render(context, mouseX, mouseY, delta, renderTooltips);
+            else child.render(context, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        render(context, mouseX, mouseY, delta, true);
     }
 
     public boolean isCollapsed() {
@@ -137,7 +143,6 @@ public class CategoryPanelWidget implements Drawable, Element {
     private void setDragOffset(double mouseX, double mouseY) {
         this.dragOffsetX = mouseX - x;
         this.dragOffsetY = mouseY - y;
-
     }
 
     @Override
@@ -154,16 +159,12 @@ public class CategoryPanelWidget implements Drawable, Element {
             int contentY = y + titleBarHeight;
             int contentHeight = height - titleBarHeight;
 
-            if (mouseY >= contentY && mouseY <= contentY + contentHeight) {
-                for (Element child : children) {
-                    if (child.isMouseOver(mouseX, mouseY)) {
-                        if (child.mouseClicked(mouseX, mouseY, button)) {
+            if (mouseY >= contentY && mouseY <= contentY + contentHeight)
+                for (Element child : children)
+                    if (child.isMouseOver(mouseX, mouseY))
+                        if (child.mouseClicked(mouseX, mouseY, button))
                             return true;
-                        }
-                    }
-                }
-            }
-
+            // python is that you ??
             return true;
         }
         return false;
@@ -208,7 +209,7 @@ public class CategoryPanelWidget implements Drawable, Element {
 
         this.setX(clampedX);
         this.setY(clampedY);
-        
+
         int currentY = this.y + titleBarHeight;
 
         for (Drawable drawable : this.drawables) {

@@ -6,6 +6,7 @@ import com.purpynaxx.phase.config.ConfigManager;
 import com.purpynaxx.phase.gui.serialization.Container;
 import com.purpynaxx.phase.gui.serialization.PanelState;
 import com.purpynaxx.phase.gui.widgets.CategoryPanelWidget;
+import com.purpynaxx.phase.gui.widgets.ModuleWidget;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
@@ -118,14 +119,23 @@ public class ModuleScreen extends Screen {
         if (this.client.world == null)
             this.renderPanoramaBackground(context, delta);
         context.fill(0, 0, this.width, this.height, 0x67000000);
+
+        ModuleWidget hoveredModule = null;
         boolean skip = false;
-        for (CategoryPanelWidget panel : this.panels.reversed()) {
+        for (CategoryPanelWidget panel : this.panels.reversed())
             if (panel.isMouseOver(mouseX, mouseY) && !skip) {
                 panel.setHovered(true);
                 skip = true;
+
+                ModuleWidget widget = panel.getHoveredModuleWidget();
+                if (widget != null && widget.hasTooltip() && widget.isTooltipReady())
+                    hoveredModule = widget;
             } else panel.setHovered(false);
-        }
-        this.panels.forEach(panel -> panel.render(context, mouseX, mouseY, delta));
+
+        this.panels.forEach(panel -> panel.render(context, mouseX, mouseY, delta, false));
+
+        if (hoveredModule != null)
+            hoveredModule.renderTooltip(context, mouseX, mouseY, delta);
     }
 
     @Override
