@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.purpynaxx.phase.mixin",
+  "package": "com.purpynaxx.phase.mixins",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ClientConnectionMixin",

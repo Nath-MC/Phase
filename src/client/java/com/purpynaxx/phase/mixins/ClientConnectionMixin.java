@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.mixin;
+package com.purpynaxx.phase.mixins;
 
 import com.purpynaxx.phase.events.network.PacketCallback;
 import io.netty.channel.ChannelHandlerContext;

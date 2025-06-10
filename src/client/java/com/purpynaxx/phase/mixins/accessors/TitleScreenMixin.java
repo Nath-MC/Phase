@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.mixin.accessors;
+package com.purpynaxx.phase.mixins.accessors;
 
 import net.minecraft.client.gui.screen.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;

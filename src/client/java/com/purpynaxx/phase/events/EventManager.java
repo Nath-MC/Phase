@@ -6,18 +6,21 @@ import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import org.jetbrains.annotations.Unmodifiable;
+import net.minecraft.client.MinecraftClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
 import static com.purpynaxx.phase.Phase.isDevEnvironment;
-import static com.purpynaxx.phase.Phase.logger;
-import static com.purpynaxx.phase.helpers.Player.isPlayerInWorld;
 
 
 public class EventManager {
 
-    private final ModuleManager moduleManager = ModuleManager.getInstance();
+    private static final ModuleManager moduleManager = ModuleManager.getInstance();
+    private static final MinecraftClient client = MinecraftClient.getInstance();
+    private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
+
 
     private EventManager() {}
 
@@ -26,7 +29,7 @@ public class EventManager {
     }
 
     public void init() {
-        Set<Module> modules = this.getModules();
+        Set<Module> modules = moduleManager.getModules();
         int listenersRegistered = 0;
         int modulesScanned = 0;
 
@@ -38,7 +41,7 @@ public class EventManager {
 
             if (module instanceof WorldStartTickListener listener) {
                 ClientTickEvents.START_WORLD_TICK.register(world -> {
-                    if (module.isActive() && isPlayerInWorld()) {
+                    if (module.isActive() && isReady()) {
                         try {
                             listener.onWorldTickStart(world);
                         } catch (Exception e) {
@@ -53,7 +56,7 @@ public class EventManager {
 
             if (module instanceof WorldTickEndListener listener) {
                 ClientTickEvents.END_WORLD_TICK.register(world -> {
-                    if (module.isActive() && isPlayerInWorld()) {
+                    if (module.isActive() && isReady()) {
                         try {
                             listener.onWorldTickEnd(world);
                         } catch (Exception e) {
@@ -68,7 +71,7 @@ public class EventManager {
 
             if (module instanceof ClientTickStartListener listener) {
                 ClientTickEvents.START_CLIENT_TICK.register(client -> {
-                    if (module.isActive() && isPlayerInWorld()) {
+                    if (module.isActive() && isReady()) {
                         try {
                             listener.onClientTickStart(client);
                         } catch (Exception e) {
@@ -83,7 +86,7 @@ public class EventManager {
 
             if (module instanceof ClientTickEndListener listener) {
                 ClientTickEvents.END_CLIENT_TICK.register(client -> {
-                    if (module.isActive() && isPlayerInWorld()) {
+                    if (module.isActive() && isReady()) {
                         try {
                             listener.onClientTickEnd(client);
                         } catch (Exception e) {
@@ -128,7 +131,7 @@ public class EventManager {
 
             if (module instanceof PacketReceiveListener listener) {
                 PacketCallback.IN.register((packet, event) -> {
-                    if (module.isActive() && isPlayerInWorld()) {
+                    if (module.isActive() && isReady()) {
                         try {
                             listener.onPacketReceive(packet, event);
                         } catch (Exception e) {
@@ -143,7 +146,7 @@ public class EventManager {
 
             if (module instanceof PacketSendListener listener) {
                 PacketCallback.OUT.register((packet, event) -> {
-                    if (module.isActive() && isPlayerInWorld()) {
+                    if (module.isActive() && isReady()) {
                         try {
                             listener.onPacketSend(packet, event);
                         } catch (Exception e) {
@@ -173,8 +176,8 @@ public class EventManager {
         logger.error("Exception in listener method \"{}\" in module \"{}\": {}", methodName, module.getName(), e.getMessage(), e);
     }
 
-    private @Unmodifiable Set<Module> getModules() {
-        return moduleManager.getModules();
+    private boolean isReady() {
+        return client.player != null && client.player.isLoaded();
     }
 
     private static class Holder {
