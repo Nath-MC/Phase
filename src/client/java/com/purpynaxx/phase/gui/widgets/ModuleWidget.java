@@ -24,7 +24,7 @@ public class ModuleWidget implements Element, Drawable {
     private final int width;
     private final int height;
 
-    private final Tooltip tooltip;
+    private final TooltipWidget tooltipWidget;
 
     private float hoverAnimationTimer = 0.0f;
     private float tooltipTimer = 0.0f;
@@ -41,7 +41,7 @@ public class ModuleWidget implements Element, Drawable {
         this.width = width;
         this.height = height;
         this.message = Text.of(module.getName());
-        this.tooltip = module.getDesc() != null && !module.getDesc().isEmpty() ? new Tooltip(module.getDesc()) : null;
+        this.tooltipWidget = module.getDescription() != null && !module.getDescription().isEmpty() ? new TooltipWidget(module.getDescription()) : null;
     }
 
     public Text getMessage() {
@@ -102,7 +102,7 @@ public class ModuleWidget implements Element, Drawable {
     }
 
     public boolean hasTooltip() {
-        return tooltip != null;
+        return tooltipWidget != null;
     }
 
     public boolean isTooltipReady() {
@@ -110,9 +110,9 @@ public class ModuleWidget implements Element, Drawable {
     }
 
     public void renderTooltip(DrawContext context, int mouseX, int mouseY, float delta) {
-        if (tooltip != null && tooltipTimer >= 1.0f) {
-            tooltip.refreshPos(this.x, this.y, 108, 8, context.getScaledWindowWidth(), context.getScaledWindowHeight());
-            tooltip.render(context, mouseX, mouseY, delta);
+        if (tooltipWidget != null && tooltipTimer >= 1.0f) {
+            tooltipWidget.refreshPos(this.x, this.y, 108, 8, context.getScaledWindowWidth(), context.getScaledWindowHeight());
+            tooltipWidget.render(context, mouseX, mouseY, delta);
         }
     }
 

@@ -27,7 +27,7 @@ public class ModuleConfigManager {
         for (Module module : modules)
             try {
                 Map<String, Object> settingValues = new HashMap<>();
-                List<Setting<?>> settings = moduleManager.getSettings(module);
+                List<Setting<?>> settings = module.getSettings();
 
                 for (Setting<?> setting : settings)
                     settingValues.put(setting.getName(), setting.getValue());

@@ -10,7 +10,7 @@ import net.minecraft.text.Text;
 import java.awt.*;
 import java.util.List;
 
-public class Tooltip implements Drawable {
+public class TooltipWidget implements Drawable {
 
     private static final int PADDING = 4;
 
@@ -24,7 +24,7 @@ public class Tooltip implements Drawable {
     private int x;
     private int y;
 
-    public Tooltip(String content) {
+    public TooltipWidget(String content) {
         this.textRenderer = MinecraftClient.getInstance().textRenderer;
         this.wrappedText = textRenderer.wrapLines(Text.of(content), 120);
 

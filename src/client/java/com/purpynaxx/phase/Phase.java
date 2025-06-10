@@ -2,7 +2,7 @@ package com.purpynaxx.phase;
 
 import com.purpynaxx.phase.config.ModuleConfigManager;
 import com.purpynaxx.phase.events.EventManager;
-import com.purpynaxx.phase.mixin.accessors.TitleScreenMixin;
+import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
 import com.purpynaxx.phase.modules.visuals.GUI;
 import net.fabricmc.api.ClientModInitializer;
@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -46,6 +47,7 @@ public class Phase implements ClientModInitializer {
             if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade() && moduleManager.isModuleActive(GUI.class))
                 ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
+                if (screen.getFocused() instanceof TextFieldWidget) return;
                 if (keyBinding.matchesKey(key, scancode))
                     moduleManager.toggleModuleActive(GUI.class);
             });

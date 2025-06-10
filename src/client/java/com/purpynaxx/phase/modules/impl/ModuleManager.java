@@ -8,7 +8,6 @@ import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
@@ -22,7 +21,6 @@ public final class ModuleManager {
     private final Set<Module.Category> categories = new HashSet<>();
     private final Map<Class<? extends Module>, Module> classModuleBaseMap = new HashMap<>();
     private final Map<Module.Category, Set<Module>> modulesByCategoryMap = new HashMap<>();
-    private final Map<Class<? extends Module>, List<Setting<?>>> moduleSettings = new HashMap<>();
     private boolean registered;
     private int failedInstantiation;
 
@@ -61,16 +59,6 @@ public final class ModuleManager {
                 Module.Category category = module.getCategory();
                 this.modulesByCategoryMap.putIfAbsent(category, new HashSet<>());
                 this.modulesByCategoryMap.get(category).add(module);
-
-                this.moduleSettings.putIfAbsent(moduleClass, new ArrayList<>());
-                Field[] fields = moduleClass.getDeclaredFields();
-
-                for (Field field : fields) {
-                    if (Setting.class.isAssignableFrom(field.getType())) {
-                        field.setAccessible(true);
-                        this.moduleSettings.get(moduleClass).add((Setting<?>) field.get(module));
-                    }
-                }
             } catch (NoSuchMethodException e) {
                 this.onFail(moduleClass.getSimpleName(), new Exception("No default constructor found", e));
             } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
@@ -133,22 +121,12 @@ public final class ModuleManager {
 
     public @Nullable Setting<?> getSetting(Module module, String name) {
         if (module == null || name == null || name.isEmpty()) return null;
-        List<Setting<?>> settings = this.moduleSettings.get(module.getClass());
-        if (settings == null || settings.isEmpty()) return null;
-
+        List<Setting<?>> settings = module.getSettings();
         for (Setting<?> setting : settings)
             if (setting.getName().equalsIgnoreCase(name))
                 return setting;
 
         return null;
-    }
-
-    public @UnmodifiableView List<Setting<?>> getSettings(Module module) {
-        if (module == null) return Collections.emptyList();
-        Class<? extends Module> moduleClass = module.getClass();
-        List<Setting<?>> settings = this.moduleSettings.get(moduleClass);
-        if (settings == null) return Collections.emptyList();
-        return Collections.unmodifiableList(settings);
     }
 
     private static class Holder {

@@ -12,24 +12,20 @@ public class GUI extends Module {
     }
 
     @Override
-    public void onActivation() {
-        if (this.client.isFinishedLoading())
-            this.client.setScreen(new ModuleScreen(title, this.client.currentScreen));
+    public void onActivate() {
+        if (client.isFinishedLoading())
+            client.setScreen(new ModuleScreen(title, client.currentScreen));
         else Thread.startVirtualThread(() -> {
-            while (!this.client.isFinishedLoading()) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    logger.error("Thread interrupted !", new RuntimeException(e));
-                }
+            while (!client.isFinishedLoading()) {
+                Thread.onSpinWait();
             }
-            this.client.execute(() -> this.client.setScreen(new ModuleScreen(title, this.client.currentScreen)));
+            client.execute(() -> client.setScreen(new ModuleScreen(title, client.currentScreen)));
         });
     }
 
     @Override
-    public void onDeactivation() {
-        if (this.client.currentScreen instanceof ModuleScreen moduleScreen)
+    public void onDeactivate() {
+        if (client.currentScreen instanceof ModuleScreen moduleScreen)
             moduleScreen.close();
     }
 
