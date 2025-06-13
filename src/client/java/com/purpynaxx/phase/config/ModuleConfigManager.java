@@ -47,7 +47,9 @@ public class ModuleConfigManager {
         int loadedCount = 0;
         for (Module module : modules)
             if (loadModule(module)) loadedCount++;
-        logger.info("Loaded {} module configurations", loadedCount);
+        if (loadedCount > 0)
+            logger.info("Loaded {} module configurations", loadedCount);
+        else logger.warn("Using default configuration");
     }
 
     public static boolean loadModule(Module module) {

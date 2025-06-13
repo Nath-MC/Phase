@@ -64,7 +64,6 @@ public class ModuleScreen extends Screen {
         List<PanelState> savedStates = currentContainer.panelStates();
         int categories = this.manager.getCategories().size();
         if (savedStates.isEmpty() || categories != savedStates.size()) {
-            logger.info("Using default configuration");
             int index = 0;
             final int padding = 16;
             final int panelWidth = 100;
