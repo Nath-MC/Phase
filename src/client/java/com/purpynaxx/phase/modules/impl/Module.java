@@ -70,8 +70,13 @@ public abstract class Module {
     public final void toggle() {
         boolean newState = !this.active.getValue();
         this.active.setValue(newState);
+        triggerEvents();
+    }
 
-        if (newState) {
+    public void triggerEvents() {
+        boolean currentState = this.active.getValue();
+
+        if (currentState) {
             try {
                 onActivate();
             } catch (Exception e) {

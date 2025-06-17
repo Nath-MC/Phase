@@ -7,6 +7,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
 
+import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,8 +28,7 @@ public class CategoryPanelWidget implements Drawable, Element {
 
     private final String title;
 
-    private final List<Element> children = new ArrayList<>();
-    private final List<Drawable> drawables = new ArrayList<>();
+    private final List<ModuleWidget> children = new ArrayList<>();
 
     private final int screenWidth;
     private final int screenHeight;
@@ -58,15 +58,47 @@ public class CategoryPanelWidget implements Drawable, Element {
     }
 
     public void addModuleEntry(Module module) {
-        final int height = 16;
-        int x = this.x;
-        int y = this.y + titleBarHeight + children.size() * height;
+        final int moduleHeight = 16;
+        int moduleX = this.x;
+        int moduleY = this.y + titleBarHeight;
 
-        ModuleWidget moduleWidget = new ModuleWidget(module, x, y, width, height);
+        if (!children.isEmpty()) {
+            ModuleWidget lastModule = children.getLast();
+            moduleY = lastModule.getY() + lastModule.getFinalHeight();
+        }
 
-        this.drawables.add(moduleWidget);
+        ModuleWidget moduleWidget = new ModuleWidget(module, moduleX, moduleY, width, moduleHeight);
+
+        // Add listener for module collapse/expand events
+        moduleWidget.setCollapseListener(this::updatePanelLayout);
+
         this.children.add(moduleWidget);
-        this.height += this.height == 0 ? titleBarHeight + height : height;
+
+        updatePanelHeight();
+    }
+
+    private void updatePanelLayout() {
+        // Recalculate positions of all module widgets
+        int currentY = this.y + titleBarHeight;
+
+        for (ModuleWidget moduleWidget : children) {
+            moduleWidget.setX(this.x);
+            moduleWidget.setY(currentY);
+            currentY += moduleWidget.getFinalHeight();
+        }
+
+        // Update the panel height
+        updatePanelHeight();
+    }
+
+    private void updatePanelHeight() {
+        if (children.isEmpty()) {
+            this.height = titleBarHeight;
+            return;
+        }
+
+        ModuleWidget lastModule = children.getLast();
+        this.height = (lastModule.getY() - this.y) + lastModule.getFinalHeight();
     }
 
     public int getX() {
@@ -85,41 +117,48 @@ public class CategoryPanelWidget implements Drawable, Element {
         this.y = y;
     }
 
-    public ModuleWidget getHoveredModuleWidget() {
-        for (Element element : children)
-            if (element instanceof ModuleWidget widget && widget.isHovered())
-                return widget;
+    public @Nullable ModuleWidget getHoveredModuleWidget() {
+        for (ModuleWidget moduleWidget : children) {
+            if (moduleWidget.isHovered()) {
+                return moduleWidget;
+            }
+        }
         return null;
     }
 
     public void render(DrawContext context, int mouseX, int mouseY, float delta, boolean renderTooltips) {
+        // Draw title bar
         context.fill(x, y, x + width, y + titleBarHeight, titleBarColor);
-        context.drawText(textRenderer, this.getTitle(), x + 4, y + (titleBarHeight - textRenderer.fontHeight) / 2 + 1, titleColor, false);
+        context.drawText(textRenderer, title, x + 4, y + (titleBarHeight - textRenderer.fontHeight) / 2 + 1, titleColor, false);
 
         if (this.isCollapsed()) {
             context.drawBorder(x - 1, y - 1, width + 2, titleBarHeight + 2, borderColor);
             return;
         }
 
+        // Draw panel background
         context.fill(x, y + titleBarHeight, x + width, y + height, backgroundColor);
         context.drawBorder(x - 1, y - 1, width + 2, height + 2, borderColor);
 
+        // Reset hover state for all modules
+        for (ModuleWidget moduleWidget : children) {
+            moduleWidget.setHovered(false);
+        }
 
-        for (Element element : children)
-            ((ModuleWidget) element).setHovered(false);
-
-
-        if (this.isHovered())
-            for (Element element : children)
-                if (element.isMouseOver(mouseX, mouseY)) {
-                    ((ModuleWidget) element).setHovered(true);
+        // Set hover state for the module under the mouse
+        if (this.isHovered()) {
+            for (ModuleWidget moduleWidget : children) {
+                if (moduleWidget.isMouseOver(mouseX, mouseY, true)) {
+                    moduleWidget.setHovered(true);
                     break;
                 }
+            }
+        }
 
-        for (Drawable child : drawables)
-            if (child instanceof ModuleWidget moduleWidget)
-                moduleWidget.render(context, mouseX, mouseY, delta, renderTooltips);
-            else child.render(context, mouseX, mouseY, delta);
+        // Render all module widgets
+        for (ModuleWidget moduleWidget : children) {
+            moduleWidget.render(context, mouseX, mouseY, delta, renderTooltips);
+        }
     }
 
     @Override
@@ -156,15 +195,16 @@ public class CategoryPanelWidget implements Drawable, Element {
                 }
             }
 
-            int contentY = y + titleBarHeight;
-            int contentHeight = height - titleBarHeight;
-
-            if (mouseY >= contentY && mouseY <= contentY + contentHeight)
-                for (Element child : children)
-                    if (child.isMouseOver(mouseX, mouseY))
-                        if (child.mouseClicked(mouseX, mouseY, button))
+            if (!this.isCollapsed()) {
+                for (ModuleWidget moduleWidget : children) {
+                    if (moduleWidget.isMouseOver(mouseX, mouseY, false)) {
+                        if (moduleWidget.mouseClicked(mouseX, mouseY, button)) {
                             return true;
-            // python is that you ??
+                        }
+                    }
+                }
+            }
+
             return true;
         }
         return false;
@@ -193,8 +233,9 @@ public class CategoryPanelWidget implements Drawable, Element {
         }
 
         for (Element child : children) {
-            if (child.mouseDragged(mouseX, mouseY, button, deltaX, deltaY))
+            if (child.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)) {
                 return true;
+            }
         }
 
         return false;
@@ -210,15 +251,8 @@ public class CategoryPanelWidget implements Drawable, Element {
         this.setX(clampedX);
         this.setY(clampedY);
 
-        int currentY = this.y + titleBarHeight;
-
-        for (Drawable drawable : this.drawables) {
-            if (drawable instanceof ModuleWidget moduleWidget) {
-                moduleWidget.setX(this.x);
-                moduleWidget.setY(currentY);
-                currentY += moduleWidget.getHeight();
-            }
-        }
+        // Update the positions of all modules
+        updatePanelLayout();
     }
 
     @Override
@@ -245,8 +279,8 @@ public class CategoryPanelWidget implements Drawable, Element {
 
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        int height = this.isCollapsed() ? titleBarHeight : this.height;
-        return mouseX >= this.x && mouseX <= this.x + width && mouseY >= this.y && mouseY <= this.y + height;
+        int panelHeight = this.isCollapsed() ? titleBarHeight : this.height;
+        return mouseX >= this.x && mouseX <= this.x + width && mouseY >= this.y && mouseY <= this.y + panelHeight;
     }
 
     public boolean isDragging() {
@@ -259,15 +293,11 @@ public class CategoryPanelWidget implements Drawable, Element {
 
     @Override
     public boolean isFocused() {
-        // Usually false for a container like this unless it specifically needs focus
         return false;
     }
 
-    // --- Element Methods (Needed for child widget interaction planning, but maybe not fully needed if handled manually) ---
     @Override
-    public void setFocused(boolean focused) {
-        // Could highlight border if focused
-    }
+    public void setFocused(boolean focused) {}
 
     public boolean isHovered() {
         return hovered;

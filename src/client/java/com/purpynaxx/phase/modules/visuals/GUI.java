@@ -3,6 +3,7 @@ package com.purpynaxx.phase.modules.visuals;
 import com.purpynaxx.phase.gui.ModuleScreen;
 import com.purpynaxx.phase.modules.impl.Module;
 
+//TODO translation
 public class GUI extends Module {
 
     private final static String title = "Config Screen";

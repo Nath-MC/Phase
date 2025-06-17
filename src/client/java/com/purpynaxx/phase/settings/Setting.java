@@ -1,13 +1,16 @@
 package com.purpynaxx.phase.settings;
 
+import org.jetbrains.annotations.NotNull;
+
 public abstract class Setting<T> {
 
     private final String name;
     private final String description;
-    private final T defaultValue;
-    private T value;
+    private @NotNull
+    final T defaultValue;
+    private @NotNull T value;
 
-    public Setting(String name, String description, T defaultValue) {
+    public Setting(String name, String description, @NotNull T defaultValue) {
         this.name = name;
         this.description = description;
         this.defaultValue = this.value = defaultValue;
@@ -17,20 +20,25 @@ public abstract class Setting<T> {
         return name;
     }
 
+    @SuppressWarnings("unchecked")
+    public Class<T> getType() {
+        return (Class<T>) this.value.getClass();
+    }
+
     public String getDescription() {
         return description;
     }
 
-    public T getDefaultValue() {
+    public @NotNull T getDefaultValue() {
         return defaultValue;
     }
 
-    public T getValue() {
+    public @NotNull T getValue() {
         return value;
     }
 
     public void setValue(T value) {
-        this.value = value;
+        this.value = value == null ? this.defaultValue : value;
     }
 
     public void resetValue() {

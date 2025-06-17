@@ -20,21 +20,39 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Executors;
+
 
 public class Phase implements ClientModInitializer {
+
     public final static String modId = "phase";
     public final static Logger logger = LoggerFactory.getLogger(Phase.class);
     public final static boolean isDevEnvironment = FabricLauncherBase.getLauncher().isDevelopment();
+
     public static KeyBinding keyBinding;
 
     @Override
     public void onInitializeClient() {
         long startTime = System.currentTimeMillis();
-        ModuleManager moduleManager = ModuleManager.getInstance();
-        if (!moduleManager.init()) // Register modules and check result
-            logger.warn("Some modules were not instanced properly ! Please check errors above.");
 
-        EventManager.getInstance().init();
+        ModuleManager moduleManager = ModuleManager.getInstance();
+
+        Executors.newSingleThreadExecutor().submit(() -> {
+
+            Thread.currentThread().setName("Phase Initialization thread");
+
+            // Discover and register modules
+            if (!moduleManager.init()) {
+                logger.warn("Some modules were not instanced properly ! Please check errors above.");
+            }
+
+            // Register events
+            EventManager.getInstance().init();
+
+            if (isDevEnvironment) {
+                logger.info("Phase initialized in {}ms", System.currentTimeMillis() - startTime);
+            }
+        });
 
         keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.phase.open_menu",
@@ -44,21 +62,28 @@ public class Phase implements ClientModInitializer {
         ));
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade() && moduleManager.isModuleActive(GUI.class))
+
+            if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade() && moduleManager.isModuleActive(GUI.class)) {
                 ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
+            }
+
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
+
                 if (screen.getFocused() instanceof TextFieldWidget) return;
-                if (keyBinding.matchesKey(key, scancode))
+
+                if (keyBinding.matchesKey(key, scancode)) {
                     moduleManager.toggleModuleActive(GUI.class);
+                }
+
             });
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (keyBinding.wasPressed())
+            if (keyBinding.wasPressed()) {
                 moduleManager.toggleModuleActive(GUI.class);
+            }
         });
 
-        ClientLifecycleEvents.CLIENT_STOPPING.register(minecraftClient -> ModuleConfigManager.saveAllModules());
-        logger.info("Phase initialized in {}ms", System.currentTimeMillis() - startTime);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(ModuleConfigManager::shutdown);
     }
 }

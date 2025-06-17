@@ -33,8 +33,6 @@ public class EventManager {
         int listenersRegistered = 0;
         int modulesScanned = 0;
 
-        logger.info("Starting event registration...");
-
         for (Module module : modules) {
             modulesScanned++;
             boolean registeredAny = false;

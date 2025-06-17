@@ -45,36 +45,37 @@ public final class ModuleManager {
         Reflections reflections = new Reflections("com.purpynaxx.phase.modules");
         Set<Class<? extends Module>> moduleClasses = reflections.getSubTypesOf(Module.class);
 
-        if (moduleClasses.isEmpty()) logger.error("No module classes found.");
+        if (!moduleClasses.isEmpty()) {
 
-        for (Class<? extends Module> moduleClass : moduleClasses) {
-            try {
-                if (isAbstract(moduleClass.getModifiers())) continue;
+            for (Class<? extends Module> moduleClass : moduleClasses) {
+                try {
+                    if (isAbstract(moduleClass.getModifiers())) continue;
 
-                Constructor<? extends Module> constructor = moduleClass.getDeclaredConstructor();
-                constructor.setAccessible(true);
-                Module module = constructor.newInstance();
-                this.add(moduleClass, module);
+                    Constructor<? extends Module> constructor = moduleClass.getDeclaredConstructor();
+                    constructor.setAccessible(true);
+                    Module module = constructor.newInstance();
+                    this.add(moduleClass, module);
 
-                Module.Category category = module.getCategory();
-                this.modulesByCategoryMap.putIfAbsent(category, new HashSet<>());
-                this.modulesByCategoryMap.get(category).add(module);
-            } catch (NoSuchMethodException e) {
-                this.onFail(moduleClass.getSimpleName(), new Exception("No default constructor found", e));
-            } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
-                this.onFail(moduleClass.getSimpleName(), e);
+                    Module.Category category = module.getCategory();
+                    this.modulesByCategoryMap.putIfAbsent(category, new HashSet<>());
+                    this.modulesByCategoryMap.get(category).add(module);
+                } catch (NoSuchMethodException e) {
+                    this.onFail(moduleClass.getSimpleName(), new Exception("No default constructor found", e));
+                } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+                    this.onFail(moduleClass.getSimpleName(), e);
+                }
             }
-        }
 
-        if (this.failedInstantiation == 0)
-            logger.info("{} modules were successfully initialized.", this.modules.size());
-        else logger.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
+            if (this.failedInstantiation == 0)
+                logger.info("{} modules were successfully initialized.", this.modules.size());
+            else logger.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
 
-        try {
-            ModuleConfigManager.loadAllModules();
-        } catch (Exception e) {
-            logger.error("Failed to load module configurations", new RuntimeException(e));
-        }
+            try {
+                ModuleConfigManager.loadAllModules();
+            } catch (Exception e) {
+                logger.error("Failed to load module configurations", new RuntimeException(e));
+            }
+        } else logger.error("No module classes found.");
 
         this.registered = true;
         return this.failedInstantiation == 0;

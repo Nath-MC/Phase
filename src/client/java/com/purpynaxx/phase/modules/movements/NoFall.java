@@ -29,6 +29,7 @@ import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//TODO translation
 public class NoFall extends Module implements PacketSendListener, ClientTickEndListener {
 
     private static final float DEFAULT_BLOCK_INTERACTION_RANGE = 4.5f;
@@ -128,6 +129,8 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
             if (waterPickupTimer > 0) {
                 waterPickupTimer--;
             }
+
+            //TODO max pickup try
 
             // Only try to pick up water if we've landed or stopped falling AND the timer has expired
             if ((client.player.isOnGround() || currentFallDistance < 0.5f) && waterPickupTimer <= 0) {
