@@ -1,18 +1,31 @@
 package com.purpynaxx.phase.events;
 
+import com.purpynaxx.phase.config.ModuleConfigManager;
 import com.purpynaxx.phase.events.listeners.*;
 import com.purpynaxx.phase.events.network.PacketCallback;
+import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
+import com.purpynaxx.phase.modules.visuals.GUI;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.*;
+import net.minecraft.client.gui.screen.world.LevelLoadingScreen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
-import static com.purpynaxx.phase.Phase.isDevEnvironment;
+import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
 
 
 public class EventManager {
@@ -20,6 +33,10 @@ public class EventManager {
     private static final ModuleManager moduleManager = ModuleManager.getInstance();
     private static final MinecraftClient client = MinecraftClient.getInstance();
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
+    private static final Set<Class<? extends Screen>> ignoredScreens = Set.of(MessageScreen.class,
+            LevelLoadingScreen.class,
+            ProgressScreen.class,
+            DownloadingTerrainScreen.class);
 
 
     private EventManager() {}
@@ -33,6 +50,7 @@ public class EventManager {
         int listenersRegistered = 0;
         int modulesScanned = 0;
 
+        // Register events for each module
         for (Module module : modules) {
             modulesScanned++;
             boolean registeredAny = false;
@@ -157,15 +175,52 @@ public class EventManager {
                 registeredAny = true;
             }
 
-            if (!registeredAny && isDevEnvironment) {
+            if (!registeredAny && IS_DEV_ENVIRONMENT) {
                 logger.warn("Module {} implements no known listener interfaces.", module.getClass().getSimpleName());
             }
         }
         logger.info("{} listeners were registered across {} scanned modules.", listenersRegistered, modulesScanned);
+
+        // Register mod-level events
+
+        KeyBinding keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.phase.open_menu",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_RIGHT_SHIFT,
+                "key.categories.phase"
+        ));
+
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+
+            if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade() && moduleManager.isModuleActive(GUI.class)) {
+                ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
+            }
+
+            if (ignoredScreens.contains(screen.getClass())) return;
+
+            ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
+
+                if (screen.getFocused() instanceof TextFieldWidget) return;
+
+                if (keyBinding.matchesKey(key, scancode)) {
+                    moduleManager.toggleModuleActive(GUI.class);
+                }
+
+            });
+        });
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (keyBinding.wasPressed()) {
+                moduleManager.toggleModuleActive(GUI.class);
+            }
+        });
+
+        ClientLifecycleEvents.CLIENT_STOPPING.register(ModuleConfigManager::shutdown);
+
     }
 
     private void logRegistration(Module module, String listenerType) {
-        if (isDevEnvironment) {
+        if (IS_DEV_ENVIRONMENT) {
             logger.info("Registered {} as {}", module.getName(), listenerType);
         }
     }

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static com.purpynaxx.phase.Phase.logger;
+import static com.purpynaxx.phase.Phase.LOGGER;
 
 public class ModuleScreen extends Screen {
 
@@ -94,9 +94,9 @@ public class ModuleScreen extends Screen {
 
                 createAndPopulatePanel(category, x, y, state.collapsed());
             } catch (IllegalArgumentException e) {
-                logger.error("No category found for title '{}' from config. Skipping panel.", state.title(), e);
+                LOGGER.error("No category found for title '{}' from config. Skipping panel.", state.title(), e);
             } catch (Exception e) {
-                logger.error("Error creating panel for '{}' from config.", state.title(), e);
+                LOGGER.error("Error creating panel for '{}' from config.", state.title(), e);
             }
         }
     }
@@ -115,7 +115,7 @@ public class ModuleScreen extends Screen {
         if (!modules.isEmpty()) {
             modules.forEach(panelWidget::addModuleEntry);
         } else {
-            logger.warn("No modules registered for the category {}", category.name());
+            LOGGER.warn("No modules registered for the category {}", category.name());
         }
 
         this.panels.add(panelWidget);

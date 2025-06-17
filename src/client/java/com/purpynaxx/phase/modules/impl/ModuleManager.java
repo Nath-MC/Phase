@@ -11,8 +11,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
-import static com.purpynaxx.phase.Phase.isDevEnvironment;
-import static com.purpynaxx.phase.Phase.logger;
+import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
+import static com.purpynaxx.phase.Phase.LOGGER;
 import static java.lang.reflect.Modifier.isAbstract;
 
 public final class ModuleManager {
@@ -66,16 +66,20 @@ public final class ModuleManager {
                 }
             }
 
-            if (this.failedInstantiation == 0)
-                logger.info("{} modules were successfully initialized.", this.modules.size());
-            else logger.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
+            if (IS_DEV_ENVIRONMENT) {
+                if (this.failedInstantiation == 0) {
+                    LOGGER.info("{} modules were successfully initialized.", this.modules.size());
+                } else {
+                    LOGGER.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
+                }
+            }
 
             try {
                 ModuleConfigManager.loadAllModules();
             } catch (Exception e) {
-                logger.error("Failed to load module configurations", new RuntimeException(e));
+                LOGGER.error("Failed to load module configurations", new RuntimeException(e));
             }
-        } else logger.error("No module classes found.");
+        } else LOGGER.error("No module classes found.");
 
         this.registered = true;
         return this.failedInstantiation == 0;
@@ -85,11 +89,11 @@ public final class ModuleManager {
         this.classModuleBaseMap.put(clazz, m);
         this.modules.add(m);
         this.categories.add(m.getCategory());
-        if (isDevEnvironment) logger.info("{} has been registered.", clazz.getSimpleName());
+        if (IS_DEV_ENVIRONMENT) LOGGER.info("{} has been registered.", clazz.getSimpleName());
     }
 
     private void onFail(String name, Exception e) {
-        logger.error("Failed to instantiate {} : {}", name, e);
+        LOGGER.error("Failed to instantiate {} : {}", name, e);
         this.failedInstantiation++;
     }
 
@@ -131,6 +135,9 @@ public final class ModuleManager {
     }
 
     private static class Holder {
+
         private static final ModuleManager INSTANCE = new ModuleManager();
+
     }
+
 }
