@@ -20,6 +20,7 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -30,15 +31,23 @@ import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Set;
+
 public class NoFall extends Module implements PacketSendListener, ClientTickEndListener {
 
     private static final float DEFAULT_BLOCK_INTERACTION_RANGE = 4.5f;
     private static final float FALL_DAMAGE_THRESHOLD = 3.0f;
     private static final Text description = Text.translatable("modules.movements.nofall.description");
+    private static final Set<Item> suitableItems = Set.of(
+            Items.WATER_BUCKET,
+            Items.POWDER_SNOW_BUCKET,
+            Items.HAY_BLOCK
+            //TODO Items.LADDER
+    );
 
     private final Setting<Mode> mode = registerSetting(new CyclingSetting<>("mode", Text.translatable("settings.screen.cycling.title"), Text.translatable("settings.screen.cycling.description", name), Mode.class));
 
-    private boolean waterBucketUsed = false;
+    private boolean placed = false;
     private boolean isAttemptingPlacement = false;
 
     private float lastYaw;
@@ -49,8 +58,9 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
     private BlockHitResult result;
     private Vec3d waterPos;
 
-    private long lastWaterPlacementTime = 0;
-    private int waterPickupTimer = 0;
+    private long lastPlacementTime = 0;
+    private int pickupTimer = 0;
+    private int tries = 0;
 
     private NoFall() {
         super(description);
@@ -119,27 +129,39 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
         float currentFallDistance = (float) client.player.fallDistance;
 
         long currentTime = System.currentTimeMillis();
-        if (isAttemptingPlacement && currentTime - lastWaterPlacementTime < 500) {
+        if (isAttemptingPlacement && currentTime - lastPlacementTime < 500) {
             return;
         }
 
-        if (Player.isInSurvival(client.player) && currentFallDistance > FALL_DAMAGE_THRESHOLD && !waterBucketUsed) {
+        if (Player.isInSurvival(client.player) && currentFallDistance > FALL_DAMAGE_THRESHOLD && !placed) {
             handleFallingPlayer();
-        } else if (waterBucketUsed) {
+        } else if (placed) {
             // Decrement the timer when water is placed
-            if (waterPickupTimer > 0) {
-                waterPickupTimer--;
+            if (pickupTimer > 0) {
+                pickupTimer--;
             }
 
-            //TODO max pickup try
-
-            // Only try to pick up water if we've landed or stopped falling AND the timer has expired
-            if ((client.player.isOnGround() || currentFallDistance < 0.5f) && waterPickupTimer <= 0) {
-                if (!pickUpWater()) {
-                    waterPickupTimer = 2;
+            // Only try to pick up water if we've landed or stopped falling, AND the timer has expired, AND the tentative has not exceeded 3 tries
+            if ((client.player.isOnGround() || currentFallDistance < 0.5f) && pickupTimer <= 0 && tries < 3) {
+                if (!pickUp()) {
+                    pickupTimer = 2;
+                    tries++;
                 }
+            } else if (tries >= 3) { // If we have already tried 3 times, we forget and give up
+                giveUp();
             }
         }
+    }
+
+    private void giveUp() {
+        tries = 0;
+        pickupTimer = 0;
+        placed = false;
+        waterPos = null;
+
+        Text message = Text.translatable("modules.movements.nofall.failed_to_pickup").formatted(Formatting.RED);
+
+        client.player.sendMessage(message, true);
     }
 
     private void handleFallingPlayer() {
@@ -168,7 +190,7 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
         // Only attempt placement when we're close enough to the ground but not too close
         if (distanceToGround > 1.0 && distanceToGround < DEFAULT_BLOCK_INTERACTION_RANGE) {
             isAttemptingPlacement = true;
-            lastWaterPlacementTime = System.currentTimeMillis();
+            lastPlacementTime = System.currentTimeMillis();
 
             // Save the current player state
             int slot = client.player.getInventory().getSelectedSlot();
@@ -177,7 +199,7 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
             Vec3d pos = client.player.getPos();
             Vec3d vel = client.player.getVelocity();
 
-            placeWaterBucket(itemSlot, vel, yaw, pitch, slot, pos);
+            place(itemSlot, vel, yaw, pitch, slot, pos);
         }
     }
 
@@ -187,31 +209,22 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
     private Item findSuitablePlacementItem() {
         PlayerInventory inventory = client.player.getInventory();
 
-        // Prioritize water bucket
-        if (hasItemInHotbar(inventory, Items.WATER_BUCKET)) {
-            return Items.WATER_BUCKET;
-        }
-
-        // Then check for the powder snow bucket
-        if (hasItemInHotbar(inventory, Items.POWDER_SNOW_BUCKET)) {
-            return Items.POWDER_SNOW_BUCKET;
-        }
-
-        // Then check for hay bale (reduces fall damage)
-        if (hasItemInHotbar(inventory, Items.HAY_BLOCK)) {
-            return Items.HAY_BLOCK;
+        for (Item item : suitableItems) {
+            if (hasItemInHotbar(inventory, item)) {
+                return item;
+            }
         }
 
         return null;
     }
 
     /**
-     * Places water bucket at the target position
+     * Places bucket at the target position
      */
-    private void placeWaterBucket(int itemSlot, Vec3d preVel, float preYaw, float prePitch, int preSlot, Vec3d prePos) {
+    private void place(int itemSlot, Vec3d preVel, float preYaw, float prePitch, int preSlot, Vec3d prePos) {
+
         // Freeze horizontal movement temporarily
         client.player.setVelocity(0, preVel.y, 0);
-
 
         // Look at the block we're going to place water on
         BlockPos pos = result.getBlockPos();
@@ -231,12 +244,12 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
         ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
 
         if (actionResult.isAccepted()) {
-            waterBucketUsed = true;
+            placed = true;
             lastYaw = preYaw;
             lastPitch = prePitch;
             lastSlot = preSlot;
             lastVelocity = preVel;
-            waterPickupTimer = 3; // Initialize the timer when water is placed
+            pickupTimer = 3; // Initialize the timer when water is placed
             waterPos = pos.up().toBottomCenterPos();
         }
 
@@ -246,15 +259,15 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
         isAttemptingPlacement = false;
     }
 
-    private boolean pickUpWater() {
+    private boolean pickUp() {
         Player.lookAt(client.player, waterPos, false);
         ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
 
         if (!actionResult.isAccepted()) {
-            return false;
+            return false; // If the pick-up was not successful
         }
 
-        waterBucketUsed = false;
+        placed = false;
 
         // Restore previous states
         client.player.setYaw(lastYaw);
@@ -318,9 +331,9 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
 
     @Override
     public void onDeactivate() {
-        waterBucketUsed = false;
+        placed = false;
         isAttemptingPlacement = false;
-        waterPickupTimer = 0;
+        pickupTimer = 0;
     }
 
     private enum Mode {

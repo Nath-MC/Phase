@@ -8,6 +8,7 @@
   "interface.gui.title": "Config Screen",
   "interface.gui.description": "What you're looking at",
   "modules.movements.nofall.description": "Cancel fall damage",
+  "modules.movements.nofall.failed_to_pickup": "Failed to pick up water/snow, sorry !",
   "modules.category.visuals.title": "Visuals",
   "modules.category.movements.title": "Movements"
 }

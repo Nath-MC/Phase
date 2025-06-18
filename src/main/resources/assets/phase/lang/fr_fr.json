@@ -8,6 +8,7 @@
   "interface.gui.title": "Écran de configuration",
   "interface.gui.description": "Ce que tu as sous les yeux",
   "modules.movements.nofall.description": "Annule les dégâts de chute",
+  "modules.movements.nofall.failed_to_pickup": "N'a pas pu récupérer l'eau/la neige, désolé !",
   "modules.category.visuals.title": "Visuels",
   "modules.category.movements.title": "Mouvements"
 }
