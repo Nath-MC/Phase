@@ -1,9 +1,11 @@
 package com.purpynaxx.phase.settings;
 
+import net.minecraft.text.Text;
+
 public class BooleanSetting extends Setting<Boolean> {
 
-    public BooleanSetting(String name, String description, boolean defaultValue) {
-        super(name, description, defaultValue);
+    public BooleanSetting(String id, Text name, Text description, boolean defaultValue) {
+        super(id, name, description, defaultValue);
     }
 
     public void toggle() {

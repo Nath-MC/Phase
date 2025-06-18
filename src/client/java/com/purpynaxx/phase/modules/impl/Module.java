@@ -3,6 +3,7 @@ package com.purpynaxx.phase.modules.impl;
 import com.purpynaxx.phase.settings.BooleanSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,7 @@ public abstract class Module {
     protected static final MinecraftClient client = MinecraftClient.getInstance();
 
     protected final String name;
-    protected final String description;
+    protected final Text description;
     protected final Category category;
     protected final Logger logger;
 
@@ -24,19 +25,19 @@ public abstract class Module {
     private final Setting<Boolean> active;
 
 
-    protected Module(String description) {
+    protected Module(Text description) {
         this.name = this.getClass().getSimpleName();
         this.description = description;
         this.category = determineCategory();
         this.logger = LoggerFactory.getLogger(this.name);
-        this.active = registerSetting(new BooleanSetting("Active", "Current module state", false));
+        this.active = registerSetting(new BooleanSetting("active", Text.translatable("settings.screen.active.title"), Text.translatable("settings.screen.active.description"), false));
     }
 
     public String getName() {
         return name;
     }
 
-    public String getDescription() {
+    public Text getDescription() {
         return description;
     }
 
@@ -96,11 +97,22 @@ public abstract class Module {
     protected void onDeactivate() {}
 
     public enum Category {
-        VISUALS,
-        MOVEMENTS;
+        VISUALS(Text.translatable("modules.category.visuals.title")),
+        MOVEMENTS(Text.translatable("modules.category.movements.title")),
+        ;
+
+        private final Text translation;
+
+        Category(Text translation) {
+            this.translation = translation;
+        }
+
+        public String getConstant() {
+            return this.name().toLowerCase(Locale.ROOT);
+        }
 
         public String getFriendlyName() {
-            String name = this.name();
+            String name = this.translation.getString();
             return name.charAt(0) + name.substring(1).toLowerCase();
         }
     }

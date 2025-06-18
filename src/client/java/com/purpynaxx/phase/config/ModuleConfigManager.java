@@ -37,10 +37,10 @@ public class ModuleConfigManager {
 
                 for (Setting<?> setting : settings) {
                     if (setting.getType().isEnum()) {
-                        settingValues.put(setting.getName(), ((Enum<?>) setting.getValue()).ordinal());
+                        settingValues.put(setting.getId(), ((Enum<?>) setting.getValue()).ordinal());
                         continue;
                     }
-                    settingValues.put(setting.getName(), setting.getValue());
+                    settingValues.put(setting.getId(), setting.getValue());
                 }
 
                 ModuleConfig config = new ModuleConfig(module.getName(), settingValues);
@@ -94,14 +94,14 @@ public class ModuleConfigManager {
      */
     private static void applyModuleConfig(Module module, ModuleConfig config) {
         for (Map.Entry<String, Object> entry : config.settingValues().entrySet()) {
-            String settingName = entry.getKey();
+            String settingId = entry.getKey();
             Object value = entry.getValue();
 
-            Setting<?> setting = moduleManager.getSetting(module, settingName);
+            Setting<?> setting = moduleManager.getSetting(module, settingId);
             if (setting != null) {
                 applySetting(setting, value);
             } else {
-                logger.warn("Setting '{}' not found in module '{}'", settingName, module.getName());
+                logger.warn("Setting '{}' not found in module '{}'", settingId, module.getName());
             }
             module.triggerEvents();
         }

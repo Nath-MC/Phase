@@ -18,6 +18,7 @@ import net.minecraft.item.Items;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -29,13 +30,13 @@ import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-//TODO translation
 public class NoFall extends Module implements PacketSendListener, ClientTickEndListener {
 
     private static final float DEFAULT_BLOCK_INTERACTION_RANGE = 4.5f;
     private static final float FALL_DAMAGE_THRESHOLD = 3.0f;
+    private static final Text description = Text.translatable("modules.movements.nofall.description");
 
-    private final Setting<Mode> mode = registerSetting(new CyclingSetting<>("Mode", "NoFall mode", Mode.class));
+    private final Setting<Mode> mode = registerSetting(new CyclingSetting<>("mode", Text.translatable("settings.screen.cycling.title"), Text.translatable("settings.screen.cycling.description", name), Mode.class));
 
     private boolean waterBucketUsed = false;
     private boolean isAttemptingPlacement = false;
@@ -52,7 +53,7 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
     private int waterPickupTimer = 0;
 
     private NoFall() {
-        super("Cancel fall damage");
+        super(description);
     }
 
     private static Vec3d @NotNull [] getChecks() {
@@ -342,4 +343,5 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
             return name.charAt(0) + name.substring(1).toLowerCase();
         }
     }
+
 }

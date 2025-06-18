@@ -28,6 +28,8 @@ public class CategoryPanelWidget implements Drawable, Element {
 
     private final String title;
 
+    private final Module.Category category;
+
     private final List<ModuleWidget> children = new ArrayList<>();
 
     private final int screenWidth;
@@ -48,13 +50,18 @@ public class CategoryPanelWidget implements Drawable, Element {
     private double lastClickY;
 
 
-    public CategoryPanelWidget(String title, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
-        this.title = title;
+    public CategoryPanelWidget(Module.Category category, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
+        this.category = category;
+        this.title = category.getFriendlyName();
         this.x = x;
         this.y = y;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         this.collapsed = collapsed;
+    }
+
+    public String getCategoryId() {
+        return category.getConstant();
     }
 
     public void addModuleEntry(Module module) {

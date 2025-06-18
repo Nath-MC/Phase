@@ -109,8 +109,7 @@ public class ModuleScreen extends Screen {
 
     private void createAndPopulatePanel(Module.Category category, int x, int y, boolean collapsed) {
         Set<Module> modules = this.manager.getModulesByCategoryMap().get(category);
-        CategoryPanelWidget panelWidget = new CategoryPanelWidget(
-                category.getFriendlyName(), x, y, this.width, this.height, collapsed);
+        CategoryPanelWidget panelWidget = new CategoryPanelWidget(category, x, y, this.width, this.height, collapsed);
 
         if (!modules.isEmpty()) {
             modules.forEach(panelWidget::addModuleEntry);
@@ -125,7 +124,7 @@ public class ModuleScreen extends Screen {
         List<PanelState> statesToSave = new ArrayList<>();
         for (CategoryPanelWidget panel : this.panels) {
             statesToSave.add(new PanelState(
-                    panel.getTitle(),
+                    panel.getCategoryId(),
                     panel.getX(),
                     panel.getY(),
                     panel.isCollapsed()

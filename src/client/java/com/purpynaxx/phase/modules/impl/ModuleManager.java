@@ -124,11 +124,11 @@ public final class ModuleManager {
         if (module != null) module.toggle();
     }
 
-    public @Nullable Setting<?> getSetting(Module module, String name) {
-        if (module == null || name == null || name.isEmpty()) return null;
+    public @Nullable Setting<?> getSetting(Module module, String id) {
+        if (module == null || id == null || id.isEmpty()) return null;
         List<Setting<?>> settings = module.getSettings();
         for (Setting<?> setting : settings)
-            if (setting.getName().equalsIgnoreCase(name))
+            if (setting.getId().equalsIgnoreCase(id))
                 return setting;
 
         return null;

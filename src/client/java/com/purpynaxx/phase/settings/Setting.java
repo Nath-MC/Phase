@@ -1,23 +1,30 @@
 package com.purpynaxx.phase.settings;
 
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class Setting<T> {
 
-    private final String name;
-    private final String description;
+    private final String id;
+    private final Text name;
+    private final Text description;
     private @NotNull
     final T defaultValue;
     private @NotNull T value;
 
-    public Setting(String name, String description, @NotNull T defaultValue) {
+    public Setting(String id, Text name, Text description, @NotNull T defaultValue) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.defaultValue = this.value = defaultValue;
     }
 
+    public String getId() {
+        return id;
+    }
+
     public String getName() {
-        return name;
+        return name.getString();
     }
 
     @SuppressWarnings("unchecked")
@@ -25,7 +32,7 @@ public abstract class Setting<T> {
         return (Class<T>) this.value.getClass();
     }
 
-    public String getDescription() {
+    public Text getDescription() {
         return description;
     }
 
@@ -44,4 +51,5 @@ public abstract class Setting<T> {
     public void resetValue() {
         this.value = this.defaultValue;
     }
+
 }

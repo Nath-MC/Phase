@@ -69,8 +69,8 @@ public class ModuleWidget implements Element, Drawable {
     }
 
     private @Nullable TooltipWidget createTooltipWidget(Module module) {
-        String description = module.getDescription();
-        if (description != null && !description.isEmpty()) {
+        Text description = module.getDescription();
+        if (description != null && !description.getString().isEmpty()) {
             return new TooltipWidget(description);
         }
         return null;

@@ -1,4 +1,13 @@
 {
   "key.phase.open_menu": "Ouvrir le menu",
-  "key.categories.phase": "Phase"
+  "key.categories.phase": "Phase",
+  "settings.screen.cycling.title": "Mode",
+  "settings.screen.cycling.description": "La façon d'opérer de %1$s",
+  "settings.screen.active.title": "Actif",
+  "settings.screen.active.description": "L'état actuel du module",
+  "interface.gui.title": "Écran de configuration",
+  "interface.gui.description": "Ce que tu as sous les yeux",
+  "modules.movements.nofall.description": "Annule les dégâts de chute",
+  "modules.category.visuals.title": "Visuels",
+  "modules.category.movements.title": "Mouvements"
 }

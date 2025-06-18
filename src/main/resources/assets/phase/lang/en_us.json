@@ -1,4 +1,13 @@
 {
   "key.phase.open_menu": "Open menu",
-  "key.categories.phase": "Phase"
+  "key.categories.phase": "Phase",
+  "settings.screen.cycling.title": "Mode",
+  "settings.screen.cycling.description": "%1$s's way of doing its job",
+  "settings.screen.active.title": "Active",
+  "settings.screen.active.description": "Current module state",
+  "interface.gui.title": "Config Screen",
+  "interface.gui.description": "What you're looking at",
+  "modules.movements.nofall.description": "Cancel fall damage",
+  "modules.category.visuals.title": "Visuals",
+  "modules.category.movements.title": "Movements"
 }

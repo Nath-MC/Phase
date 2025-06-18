@@ -24,9 +24,9 @@ public class TooltipWidget implements Drawable {
     private int x;
     private int y;
 
-    public TooltipWidget(String content) {
+    public TooltipWidget(Text content) {
         this.textRenderer = MinecraftClient.getInstance().textRenderer;
-        this.wrappedText = textRenderer.wrapLines(Text.of(content), 120);
+        this.wrappedText = textRenderer.wrapLines(content, 120);
 
         int maxLineWidth = 0;
         for (OrderedText line : wrappedText)
