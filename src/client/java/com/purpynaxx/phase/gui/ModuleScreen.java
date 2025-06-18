@@ -3,7 +3,7 @@ package com.purpynaxx.phase.gui;
 import com.purpynaxx.phase.config.ConfigManager;
 import com.purpynaxx.phase.gui.serialization.Container;
 import com.purpynaxx.phase.gui.serialization.PanelState;
-import com.purpynaxx.phase.gui.widgets.CategoryPanelWidget;
+import com.purpynaxx.phase.gui.widgets.ContainerPanelWidget;
 import com.purpynaxx.phase.gui.widgets.ModuleWidget;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
@@ -30,7 +30,7 @@ public class ModuleScreen extends Screen {
 
     private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
 
-    private final List<CategoryPanelWidget> panels = new ArrayList<>();
+    private final List<ContainerPanelWidget> panels = new ArrayList<>();
 
     private final ModuleManager manager = ModuleManager.getInstance();
 
@@ -109,7 +109,7 @@ public class ModuleScreen extends Screen {
 
     private void createAndPopulatePanel(Module.Category category, int x, int y, boolean collapsed) {
         Set<Module> modules = this.manager.getModulesByCategoryMap().get(category);
-        CategoryPanelWidget panelWidget = new CategoryPanelWidget(category, x, y, this.width, this.height, collapsed);
+        ContainerPanelWidget panelWidget = new ContainerPanelWidget(category, x, y, this.width, this.height, collapsed);
 
         if (!modules.isEmpty()) {
             modules.forEach(panelWidget::addModuleEntry);
@@ -122,7 +122,7 @@ public class ModuleScreen extends Screen {
 
     private void saveStates() {
         List<PanelState> statesToSave = new ArrayList<>();
-        for (CategoryPanelWidget panel : this.panels) {
+        for (ContainerPanelWidget panel : this.panels) {
             statesToSave.add(new PanelState(
                     panel.getCategoryId(),
                     panel.getX(),
@@ -183,7 +183,7 @@ public class ModuleScreen extends Screen {
         ModuleWidget hoveredModule = null;
         boolean foundHoveredPanel = false;
 
-        for (CategoryPanelWidget panel : this.panels.reversed()) {
+        for (ContainerPanelWidget panel : this.panels.reversed()) {
             if (panel.isMouseOver(mouseX, mouseY) && !foundHoveredPanel) {
                 panel.setHovered(true);
                 foundHoveredPanel = true;
@@ -202,7 +202,7 @@ public class ModuleScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        for (CategoryPanelWidget panel : this.panels.reversed()) {
+        for (ContainerPanelWidget panel : this.panels.reversed()) {
             if (panel.mouseClicked(mouseX, mouseY, button)) {
                 bringPanelToFront(panel);
                 return true;
@@ -211,7 +211,7 @@ public class ModuleScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private void bringPanelToFront(CategoryPanelWidget panel) {
+    private void bringPanelToFront(ContainerPanelWidget panel) {
         int currentIndex = this.panels.indexOf(panel);
         if (currentIndex != this.panels.size() - 1) {
             this.panels.remove(panel);
@@ -221,7 +221,7 @@ public class ModuleScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        for (CategoryPanelWidget panel : this.panels.reversed()) {
+        for (ContainerPanelWidget panel : this.panels.reversed()) {
             if (panel.isDragging()) {
                 return panel.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
             }
@@ -232,7 +232,7 @@ public class ModuleScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         boolean released = false;
-        for (CategoryPanelWidget panel : this.panels.reversed()) {
+        for (ContainerPanelWidget panel : this.panels.reversed()) {
             if (panel.mouseReleased(mouseX, mouseY, button)) {
                 released = true;
             }

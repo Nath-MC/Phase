@@ -12,7 +12,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CategoryPanelWidget implements Drawable, Element {
+public class ContainerPanelWidget implements Drawable, Element {
 
     private static final int dragThresholdSquared = 9;
     private static final int titleBarHeight = 15;
@@ -50,7 +50,7 @@ public class CategoryPanelWidget implements Drawable, Element {
     private double lastClickY;
 
 
-    public CategoryPanelWidget(Module.Category category, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
+    public ContainerPanelWidget(Module.Category category, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
         this.category = category;
         this.title = category.getFriendlyName();
         this.x = x;
