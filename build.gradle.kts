@@ -50,7 +50,8 @@ dependencies {
         "fabric-networking-api-v1",
         "fabric-key-binding-api-v1",
         "fabric-screen-api-v1",
-        "fabric-resource-loader-v0"
+        "fabric-resource-loader-v0",
+        "fabric-rendering-v1"
     )
 
     apiModules.forEach { module ->

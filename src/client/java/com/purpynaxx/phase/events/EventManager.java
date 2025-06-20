@@ -1,8 +1,12 @@
 package com.purpynaxx.phase.events;
 
 import com.purpynaxx.phase.config.ModuleConfigManager;
-import com.purpynaxx.phase.events.listeners.*;
-import com.purpynaxx.phase.events.network.PacketCallback;
+import com.purpynaxx.phase.events.interfaces.client.ClientTick;
+import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
+import com.purpynaxx.phase.events.interfaces.world.WorldConnectivity;
+import com.purpynaxx.phase.events.interfaces.world.WorldRender;
+import com.purpynaxx.phase.events.interfaces.world.WorldTick;
+import com.purpynaxx.phase.events.network.PacketEvent;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
@@ -11,6 +15,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.MinecraftClient;
@@ -58,67 +63,81 @@ public class EventManager {
 
         for (Module module : modules) {
             modulesScanned++;
-            int registeredForModule = 0;
+            int moduleRegistered = 0;
 
-            registeredForModule += registerListener(module, WorldStartTickListener.class,
+            moduleRegistered += registerListener(module, WorldTick.BEFORE.class,
                     listener -> ClientTickEvents.START_WORLD_TICK.register(world -> {
                         if (module.isActive() && isReady()) {
-                            safelyExecute(() -> listener.onWorldTickStart(world), "onWorldTickStart", module);
+                            safelyExecute(() -> listener.beforeWorldTick(world), "beforeWorldTick", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, WorldTickEndListener.class,
+            moduleRegistered += registerListener(module, WorldTick.AFTER.class,
                     listener -> ClientTickEvents.END_WORLD_TICK.register(world -> {
                         if (module.isActive() && isReady()) {
-                            safelyExecute(() -> listener.onWorldTickEnd(world), "onWorldTickEnd", module);
+                            safelyExecute(() -> listener.afterWorldTick(world), "afterWorldTick", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, ClientTickStartListener.class,
+            moduleRegistered += registerListener(module, ClientTick.BEFORE.class,
                     listener -> ClientTickEvents.START_CLIENT_TICK.register(client -> {
                         if (module.isActive() && isReady()) {
-                            safelyExecute(() -> listener.onClientTickStart(client), "onClientTickStart", module);
+                            safelyExecute(() -> listener.beforeClientTick(client), "beforeClientTick", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, ClientTickEndListener.class,
+            moduleRegistered += registerListener(module, ClientTick.AFTER.class,
                     listener -> ClientTickEvents.END_CLIENT_TICK.register(client -> {
                         if (module.isActive() && isReady()) {
-                            safelyExecute(() -> listener.onClientTickEnd(client), "onClientTickEnd", module);
+                            safelyExecute(() -> listener.afterClientTick(client), "afterClientTick", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, WorldJoinListener.class,
+            moduleRegistered += registerListener(module, WorldConnectivity.JOIN.class,
                     listener -> ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
                         if (module.isActive()) {
                             safelyExecute(() -> listener.onWorldJoin(handler, sender, client), "onWorldJoin", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, WorldLeaveListener.class,
+            moduleRegistered += registerListener(module, WorldConnectivity.LEAVE.class,
                     listener -> ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
                         if (module.isActive()) {
                             safelyExecute(() -> listener.onWorldLeave(handler, client), "onWorldLeave", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, PacketReceiveListener.class,
-                    listener -> PacketCallback.IN.register((packet, event) -> {
+            moduleRegistered += registerListener(module, PacketHandler.IN.class,
+                    listener -> PacketEvent.IN.register((packet, event) -> {
                         if (module.isActive() && isReady()) {
                             safelyExecute(() -> listener.onPacketReceive(packet, event), "onPacketReceive", module);
                         }
                     }));
 
-            registeredForModule += registerListener(module, PacketSendListener.class,
-                    listener -> PacketCallback.OUT.register((packet, event) -> {
+            moduleRegistered += registerListener(module, PacketHandler.OUT.class,
+                    listener -> PacketEvent.OUT.register((packet, event) -> {
                         if (module.isActive() && isReady()) {
                             safelyExecute(() -> listener.onPacketSend(packet, event), "onPacketSend", module);
                         }
                     }));
 
-            listenersRegistered += registeredForModule;
+            moduleRegistered += registerListener(module, WorldRender.LAST.class,
+                    listener -> WorldRenderEvents.LAST.register(context -> {
+                        if (module.isActive() && isReady()) {
+                            safelyExecute(() -> listener.onWorldRenderLast(context), "onWorldRenderLast", module);
+                        }
+                    }));
 
-            if (registeredForModule == 0 && IS_DEV_ENVIRONMENT) {
+            moduleRegistered += registerListener(module, WorldRender.END.class,
+                    listener -> WorldRenderEvents.END.register(context -> {
+                        if (module.isActive() && isReady()) {
+                            safelyExecute(() -> listener.onWorldRenderEnd(context), "onWorldRenderEnd", module);
+                        }
+                    }));
+
+            listenersRegistered += moduleRegistered;
+
+            if (moduleRegistered == 0 && IS_DEV_ENVIRONMENT) {
                 logger.warn("Module {} implements no known listener interfaces.", module.getClass().getSimpleName());
             }
         }
@@ -132,7 +151,7 @@ public class EventManager {
         if (listenerClass.isInstance(module)) {
             T listener = listenerClass.cast(module);
             registrationMethod.accept(listener);
-            logRegistration(module, listenerClass.getSimpleName());
+            logRegistration(module, listenerClass);
             return 1;
         }
         return 0;
@@ -183,10 +202,12 @@ public class EventManager {
         ClientLifecycleEvents.CLIENT_STOPPING.register(ModuleConfigManager::shutdown);
     }
 
-    private void logRegistration(Module module, String listenerType) {
-        if (IS_DEV_ENVIRONMENT) {
-            logger.info("Registered {} as {}", module.getName(), listenerType);
-        }
+    private void logRegistration(Module module, Class<?> listenerClass) {
+        if (!IS_DEV_ENVIRONMENT) return;
+
+        String completeName = listenerClass.getDeclaringClass().getSimpleName() + "." + listenerClass.getSimpleName();
+        logger.info("Subscribed {} to {}", module.getName(), completeName);
+
     }
 
     private void logListenerError(Module module, String methodName, Exception e) {

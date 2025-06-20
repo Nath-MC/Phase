@@ -1,8 +1,8 @@
 package com.purpynaxx.phase.modules.movements;
 
-import com.purpynaxx.phase.events.listeners.ClientTickEndListener;
-import com.purpynaxx.phase.events.listeners.PacketSendListener;
-import com.purpynaxx.phase.helpers.Player;
+import com.purpynaxx.phase.events.interfaces.client.ClientTick;
+import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
+import com.purpynaxx.phase.helpers.entity.Player;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.settings.CyclingSetting;
@@ -33,7 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Set;
 
-public class NoFall extends Module implements PacketSendListener, ClientTickEndListener {
+public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTER {
 
     private static final float DEFAULT_BLOCK_INTERACTION_RANGE = 4.5f;
     private static final float FALL_DAMAGE_THRESHOLD = 3.0f;
@@ -119,7 +119,7 @@ public class NoFall extends Module implements PacketSendListener, ClientTickEndL
     }
 
     @Override
-    public void onClientTickEnd(MinecraftClient client) {
+    public void afterClientTick(MinecraftClient client) {
         if (mode.getValue() == Mode.MLG) {
             handleMlg();
         }

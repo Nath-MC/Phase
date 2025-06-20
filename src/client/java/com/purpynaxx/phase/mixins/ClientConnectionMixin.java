@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.mixins;
 
-import com.purpynaxx.phase.events.network.PacketCallback;
+import com.purpynaxx.phase.events.network.PacketEvent;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.packet.Packet;
@@ -14,11 +14,11 @@ public class ClientConnectionMixin {
 
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V"), method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", cancellable = true)
     private void channelRead0(ChannelHandlerContext channelHandlerContext, Packet<?> packet, CallbackInfo ci) {
-        PacketCallback.IN.invoker().onPacketReceive(packet, ci);
+        PacketEvent.IN.invoker().onPacketReceive(packet, ci);
     }
 
     @Inject(at = @At("HEAD"), method = "send(Lnet/minecraft/network/packet/Packet;)V", cancellable = true)
     private void send(Packet<?> packet, CallbackInfo ci) {
-        PacketCallback.OUT.invoker().onPacketSend(packet, ci);
+        PacketEvent.OUT.invoker().onPacketSend(packet, ci);
     }
 }

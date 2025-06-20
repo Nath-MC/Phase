@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.helpers;
+package com.purpynaxx.phase.helpers.entity;
 
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
