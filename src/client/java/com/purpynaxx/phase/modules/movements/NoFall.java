@@ -3,12 +3,16 @@ package com.purpynaxx.phase.modules.movements;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.helpers.entity.Player;
+import com.purpynaxx.phase.helpers.render.BlockOverlay;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.settings.CyclingSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.LeavesBlock;
+import net.minecraft.block.SlabBlock;
+import net.minecraft.block.enums.SlabType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.fluid.Fluids;
@@ -25,42 +29,57 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.awt.*;
+import java.util.LinkedHashSet;
 import java.util.Set;
+
+import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
 
 public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTER {
 
-    private static final float DEFAULT_BLOCK_INTERACTION_RANGE = 4.5f;
-    private static final float FALL_DAMAGE_THRESHOLD = 3.0f;
     private static final Text description = Text.translatable("modules.movements.nofall.description");
-    private static final Set<Item> suitableItems = Set.of(
-            Items.WATER_BUCKET,
-            Items.POWDER_SNOW_BUCKET,
-            Items.HAY_BLOCK
-            //TODO Items.LADDER
-    );
+    private static final Set<Item> suitableItems = new LinkedHashSet<>();
+
+    static {
+        suitableItems.add(Items.WATER_BUCKET);
+        suitableItems.add(Items.POWDER_SNOW_BUCKET);
+        suitableItems.add(Items.SLIME_BLOCK);
+        suitableItems.add(Items.LADDER);
+        //suitableItems.add(Items.VINE);
+        suitableItems.add(Items.SCAFFOLDING);
+        //suitableItems.add(Items.WEEPING_VINES);
+        //suitableItems.add(Items.TWISTING_VINES);
+        suitableItems.add(Items.COBWEB);
+    }
 
     private final Setting<Mode> mode = registerSetting(new CyclingSetting<>("mode", Text.translatable("settings.screen.cycling.title"), Text.translatable("settings.screen.cycling.description", name), Mode.class));
 
     private boolean placed = false;
-    private boolean isAttemptingPlacement = false;
 
     private float lastYaw;
     private float lastPitch;
-    private int lastSlot;
-    private Vec3d lastVelocity;
 
-    private BlockHitResult result;
+    private int lastSlot;
+
+    private Vec3d lastVelocity;
+    private Vec3d lastPosition;
+
+    private BlockHitResult hitResult;
+    private BlockPos result;
+
     private Vec3d waterPos;
 
-    private long lastPlacementTime = 0;
-    private int pickupTimer = 0;
+    private int pickupTimer;
     private int tries = 0;
+
+    private Item itemInUse;
 
     private NoFall() {
         super(description);
@@ -80,35 +99,15 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
         };
     }
 
-    private static boolean hasItemInHotbar(PlayerInventory inventory, Item item) {
-        // Only check hotbar slots (0-8)
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = inventory.getStack(i);
-            if (stack.getItem() == item) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static int findItemSlot(Item item) {
-        PlayerInventory inventory = client.player.getInventory();
-        // Only check hotbar slots (0-8)
-        for (int i = 0; i < 9; i++) {
-            if (inventory.getStack(i).getItem() == item) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     @Override
     public void onPacketSend(Packet<?> packet, CallbackInfo event) {
         if (mode.getValue() == Mode.PACKET) {
-            if (packet instanceof PlayerMoveC2SPacket movePacket &&
-                    Player.isInSurvival(client.player) &&
-                    !movePacket.isOnGround() &&
-                    client.player.fallDistance > FALL_DAMAGE_THRESHOLD) {
+
+            if (
+                    packet instanceof PlayerMoveC2SPacket movePacket
+                            && Player.canTakeFallDamage(client.player)
+                            && !movePacket.isOnGround()
+            ) {
 
                 // Only modify the packet if we're actually falling, not jumping or flying
                 if (client.player.getVelocity().y < 0) {
@@ -121,187 +120,200 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
     @Override
     public void afterClientTick(MinecraftClient client) {
         if (mode.getValue() == Mode.MLG) {
-            handleMlg();
-        }
-    }
-
-    private void handleMlg() {
-        float currentFallDistance = (float) client.player.fallDistance;
-
-        long currentTime = System.currentTimeMillis();
-        if (isAttemptingPlacement && currentTime - lastPlacementTime < 500) {
-            return;
-        }
-
-        if (Player.isInSurvival(client.player) && currentFallDistance > FALL_DAMAGE_THRESHOLD && !placed) {
-            handleFallingPlayer();
-        } else if (placed) {
-            // Decrement the timer when water is placed
-            if (pickupTimer > 0) {
-                pickupTimer--;
-            }
-
-            // Only try to pick up water if we've landed or stopped falling, AND the timer has expired, AND the tentative has not exceeded 3 tries
-            if ((client.player.isOnGround() || currentFallDistance < 0.5f) && pickupTimer <= 0 && tries < 3) {
-                if (!pickUp()) {
-                    pickupTimer = 2;
-                    tries++;
-                }
-            } else if (tries >= 3) { // If we have already tried 3 times, we forget and give up
-                giveUp();
+            boolean isFalling = Player.canTakeFallDamage(client.player);
+            if (isFalling && !placed) {
+                handleFall();
+            } else if (placed && !isFalling) { // Ensure we don't try to pick up water/snow if we have not stopped falling yet
+                handlePickup();
             }
         }
     }
 
-    private void giveUp() {
-        tries = 0;
-        pickupTimer = 0;
-        placed = false;
-        waterPos = null;
-
-        Text message = Text.translatable("modules.movements.nofall.failed_to_pickup").formatted(Formatting.RED);
-
-        client.player.sendMessage(message, true);
+    private void handlePickup() {
+        if (pickupTimer > 0) {
+            pickupTimer--;
+        } else if (tries < 3) { // Pick up only if the timer has expired and we did not exceed the number of tries
+            if (!pickUp()) {
+                pickupTimer = 2;
+                tries++;
+            }
+        } else { // If we have already tried 3 times, we forget and give up
+            tries = 0;
+            pickupTimer = 0;
+            placed = false;
+            waterPos = null;
+            restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);
+            client.player.sendMessage(Text.translatable("modules.movements.nofall.failed_to_pickup").formatted(Formatting.RED), true);
+        }
     }
 
-    private void handleFallingPlayer() {
+    private void handleFall() {
+
         // Don't continue if we're about to land on a safe surface
         if (isSafe()) {
             return;
         }
 
-        // Update surface detection
-        detectHighestSurface();
-
-        // Check if we have a water bucket in the hotbar or find an alternative item
-        Item placementItem = findSuitablePlacementItem();
-        if (placementItem == null) {
+        // Check if we have an appropriate item in the hotbar
+        int itemSlot = findItemSlot();
+        if (itemSlot == -1) {
             return;
         }
 
-        int itemSlot = findItemSlot(placementItem);
-        if (itemSlot == -1 || result.getType() != BlockHitResult.Type.BLOCK) {
-            return;
-        }
-
-        // Calculate distance to ground
-        double distanceToGround = client.player.getPos().y - result.getBlockPos().getY();
-
-        // Only attempt placement when we're close enough to the ground but not too close
-        if (distanceToGround > 1.0 && distanceToGround < DEFAULT_BLOCK_INTERACTION_RANGE) {
-            isAttemptingPlacement = true;
-            lastPlacementTime = System.currentTimeMillis();
-
-            // Save the current player state
-            int slot = client.player.getInventory().getSelectedSlot();
-            float yaw = client.player.getYaw();
-            float pitch = client.player.getPitch();
-            Vec3d pos = client.player.getPos();
-            Vec3d vel = client.player.getVelocity();
-
-            place(itemSlot, vel, yaw, pitch, slot, pos);
+        // Only attempt placement when the ground is within reach
+        if ((client.player.getPos().y - result.getY()) < client.player.getBlockInteractionRange()) {
+            place();
         }
     }
 
-    /**
-     * Finds a suitable item for fall damage prevention
-     */
-    private Item findSuitablePlacementItem() {
+    @Range(from = -1, to = 8)
+    private int findItemSlot() {
         PlayerInventory inventory = client.player.getInventory();
 
         for (Item item : suitableItems) {
-            if (hasItemInHotbar(inventory, item)) {
-                return item;
+
+            if (item == Items.WATER_BUCKET) {
+                BlockState blockState = client.world.getBlockState(result);
+                if (blockState.getBlock() instanceof SlabBlock && blockState.get(SlabBlock.TYPE) == SlabType.TOP) {
+                    continue;
+                }
+
+                if (blockState.getBlock() instanceof LeavesBlock) {
+                    continue;
+                }
+            }
+
+            int itemSlot = -1; // Initialize itemSlot to -1, indicating no item found
+
+            // Searching for the item in the hotbar (slots 0-8)
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = inventory.getStack(i);
+
+                if (stack.getItem() == item) {
+                    itemSlot = i;
+                    break; // Return the index of the found item
+                }
+            }
+
+            if (itemSlot != -1) {
+                itemInUse = item; // Save the item being used
+                return itemSlot; // Return the first suitable item found in the hotbar
             }
         }
 
-        return null;
+        return -1; // Return -1 if no suitable item is found
     }
 
-    /**
-     * Places bucket at the target position
-     */
-    private void place(int itemSlot, Vec3d preVel, float preYaw, float prePitch, int preSlot, Vec3d prePos) {
+    private void place() {
+
+        // Save the current player state
+        Vec3d position = client.player.getPos();
+        float pitch = client.player.getPitch();
+        float yaw = client.player.getYaw();
+        int previousSlot = client.player.getInventory().getSelectedSlot();
 
         // Freeze horizontal movement temporarily
-        client.player.setVelocity(0, preVel.y, 0);
+        Vec3d velocity = client.player.getVelocity();
+        client.player.setVelocity(0, velocity.y, 0);
 
-        // Look at the block we're going to place water on
-        BlockPos pos = result.getBlockPos();
-        Vec3d target = pos.toCenterPos().offset(Direction.UP, 0.5);
-        Player.lookAt(client.player, target, false);
+        // Look at and position ourselves over the block we're going to place on
+        Vec3d target = result.up().toBottomCenterPos();
+        Vec3d placementPos = new Vec3d(target.getX(), client.player.getY(), target.getZ());
+        Player.setPosition(client.player, placementPos, Player.Side.CLIENT);
+        Player.lookAt(client.player, target, Player.Side.CLIENT);
+        Player.syncFull(client.player);
 
-        // Position player correctly for placement
-        Vec3d placementPos = new Vec3d(
-                target.getX(),
-                client.player.getY(),
-                target.getZ()
-        );
-        Player.setPosition(client.player, placementPos, false);
-
-        // Select the water bucket and use it
+        // Select the item
+        int itemSlot = findItemSlot();
         client.player.getInventory().setSelectedSlot(itemSlot);
-        ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
 
-        if (actionResult.isAccepted()) {
-            placed = true;
-            lastYaw = preYaw;
-            lastPitch = prePitch;
-            lastSlot = preSlot;
-            lastVelocity = preVel;
-            pickupTimer = 3; // Initialize the timer when water is placed
-            waterPos = pos.up().toBottomCenterPos();
+        int previousCount = client.player.getMainHandStack().getCount();
+        ActionResult actionResult;
+
+        if (itemInUse == Items.WATER_BUCKET) {
+            actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+        } else {
+            actionResult = client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hitResult);
         }
 
-        // Restore player position and velocity
-        Player.setPosition(client.player, prePos, false);
-        Player.syncPosition(client.player);
-        isAttemptingPlacement = false;
+        boolean b = itemInUse != client.player.getMainHandStack().getItem();
+        boolean b1 = client.player.getMainHandStack().getCount() < previousCount;
+
+        if (actionResult instanceof ActionResult.Success && (b || b1)) {
+            placed = true;
+            lastYaw = yaw;
+            lastPitch = pitch;
+            lastSlot = previousSlot;
+            lastVelocity = velocity;
+            lastPosition = position;
+            pickupTimer = 3;
+            waterPos = target;
+
+            if (IS_DEV_ENVIRONMENT)
+                if (result != null) {
+                    Color color = new Color(0, 0, 255, 100);
+                    renderer.addRenderable(new BlockOverlay(result.up(), color, true, 200));
+                }
+        } else {
+            // Restore if placement failed
+            restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);
+        }
+
     }
 
     private boolean pickUp() {
-        Player.lookAt(client.player, waterPos, false);
-        ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+        Player.lookAt(client.player, waterPos, Player.Side.CLIENT);
 
-        if (!actionResult.isAccepted()) {
-            return false; // If the pick-up was not successful
+        if (itemInUse == Items.WATER_BUCKET || itemInUse == Items.POWDER_SNOW_BUCKET) { // Don't try to pick up block(s)
+            ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+
+            if (!actionResult.isAccepted()) {
+                return false; // If the pick-up was not successful
+            }
         }
 
         placed = false;
 
         // Restore previous states
-        client.player.setYaw(lastYaw);
-        client.player.setPitch(lastPitch);
-        client.player.getInventory().setSelectedSlot(lastSlot);
-        client.player.setVelocity(lastVelocity);
+        restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);
+
         return true;
     }
 
-    private boolean isSafe() {
-        BlockHitResult surfaceResult = detectHighestSurface();
-        if (surfaceResult.getType() == BlockHitResult.Type.BLOCK) {
-            BlockState blockState = client.world.getBlockState(surfaceResult.getBlockPos());
-
-            // Check if the block we're landing on cancels fall damage
-            return blockState.isIn(BlockTags.FALL_DAMAGE_RESETTING)
-                    || blockState.isOf(Blocks.SLIME_BLOCK)
-                    || blockState.isOf(Blocks.HONEY_BLOCK)
-                    || (blockState.getFluidState().getFluid() == Fluids.WATER
-                    || blockState.getFluidState().getFluid() == Fluids.FLOWING_WATER);
-        }
-        return false;
+    private void restoreStates(int slot, float yaw, float pitch, Vec3d position, Vec3d velocity) {
+        client.player.getInventory().setSelectedSlot(slot);
+        client.player.setVelocity(velocity.x, client.player.getVelocity().y, velocity.z);
+        Player.setRotation(client.player, yaw, pitch, Player.Side.CLIENT);
+        Player.setPosition(client.player, new Vec3d(position.x, client.player.getY(), position.z), Player.Side.CLIENT);
+        Player.syncFull(client.player);
     }
 
-    private BlockHitResult detectHighestSurface() {
+    private boolean isSafe() {
+        result = detectHighestSurface();
+
+        if (result == null) {
+            return true; // Still falling, stop further checks
+        }
+
+        BlockState blockState = client.world.getBlockState(result);
+
+        // Check if the block we're landing on cancels fall damage
+        return blockState.isIn(BlockTags.FALL_DAMAGE_RESETTING)
+                || blockState.isOf(Blocks.SLIME_BLOCK)
+                || (blockState.getFluidState().getFluid() == Fluids.WATER
+                || blockState.getFluidState().getFluid() == Fluids.FLOWING_WATER);
+    }
+
+    private @Nullable BlockPos detectHighestSurface() {
         Vec3d[] checks = getChecks();
 
         int maxY = Integer.MIN_VALUE;
-        BlockHitResult bestResult = new BlockHitResult(new Vec3d(0, 0, 0), null, BlockPos.ORIGIN, false);
+        BlockHitResult bestResult = null;
 
         for (Vec3d check : checks) {
             RaycastContext raycastContext = new RaycastContext(
                     check,
-                    check.subtract(0, DEFAULT_BLOCK_INTERACTION_RANGE, 0),
+                    check.subtract(0, client.player.getBlockInteractionRange(), 0),
                     RaycastContext.ShapeType.OUTLINE,
                     RaycastContext.FluidHandling.ANY, // Check for any fluid, not just water
                     client.player
@@ -325,15 +337,20 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
             }
         }
 
-        this.result = bestResult;
-        return bestResult;
+        if (bestResult != null) {
+            hitResult = bestResult;
+            return bestResult.getBlockPos();
+        }
+
+        return null;
     }
 
     @Override
     public void onDeactivate() {
         placed = false;
-        isAttemptingPlacement = false;
         pickupTimer = 0;
+        tries = 0;
+        result = null;
     }
 
     private enum Mode {

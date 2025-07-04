@@ -27,5 +27,5 @@
     "minecraft": "~${minecraft_version}",
     "java": ">=21"
   },
-  "accesswidener": "phase.accesswidener"
+  "accessWidener": "phase.accesswidener"
 }

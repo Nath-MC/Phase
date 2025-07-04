@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.modules.impl;
 
+import com.purpynaxx.phase.helpers.render.Renderer;
 import com.purpynaxx.phase.settings.BooleanSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
@@ -15,6 +16,8 @@ import java.util.Locale;
 public abstract class Module {
 
     protected static final MinecraftClient client = MinecraftClient.getInstance();
+    protected static final ModuleManager manager = ModuleManager.getInstance();
+    protected static final Renderer renderer = Renderer.getInstance();
 
     protected final String name;
     protected final Text description;

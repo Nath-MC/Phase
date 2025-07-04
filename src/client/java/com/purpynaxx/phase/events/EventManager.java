@@ -7,6 +7,7 @@ import com.purpynaxx.phase.events.interfaces.world.WorldConnectivity;
 import com.purpynaxx.phase.events.interfaces.world.WorldRender;
 import com.purpynaxx.phase.events.interfaces.world.WorldTick;
 import com.purpynaxx.phase.events.network.PacketEvent;
+import com.purpynaxx.phase.helpers.render.Renderer;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.impl.Module;
 import com.purpynaxx.phase.modules.impl.ModuleManager;
@@ -44,6 +45,7 @@ public class EventManager {
             ProgressScreen.class,
             DownloadingTerrainScreen.class
     );
+    private static final Renderer renderer = Renderer.getInstance();
 
     private EventManager() {}
 
@@ -121,17 +123,10 @@ public class EventManager {
                         }
                     }));
 
-            moduleRegistered += registerListener(module, WorldRender.LAST.class,
-                    listener -> WorldRenderEvents.LAST.register(context -> {
-                        if (module.isActive() && isReady()) {
-                            safelyExecute(() -> listener.onWorldRenderLast(context), "onWorldRenderLast", module);
-                        }
-                    }));
-
             moduleRegistered += registerListener(module, WorldRender.END.class,
                     listener -> WorldRenderEvents.END.register(context -> {
                         if (module.isActive() && isReady()) {
-                            safelyExecute(() -> listener.onWorldRenderEnd(context), "onWorldRenderEnd", module);
+                            safelyExecute(() -> Renderer.positionMatrixAndRender(context, () -> listener.onWorldRenderEnd(context)), "onWorldRenderEnd", module);
                         }
                     }));
 
@@ -162,10 +157,12 @@ public class EventManager {
             action.run();
         } catch (Exception e) {
             logListenerError(module, methodName, e);
+            module.setActive(false); // kill switch
         }
     }
 
     private void registerGlobalEvents() {
+
         // Register menu key binding
         KeyBinding keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.phase.open_menu",
@@ -173,6 +170,7 @@ public class EventManager {
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
                 "key.categories.phase"
         ));
+
 
         // Register screen events
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
@@ -191,12 +189,28 @@ public class EventManager {
             });
         });
 
-        // Register tick event for key binding
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+
+            // Register tick event for key binding
             if (keyBinding.wasPressed()) {
                 moduleManager.toggleModuleActive(GUI.class);
             }
+
+            // Handle renderer tick
+            renderer.tick();
+
         });
+
+
+        ClientPlayConnectionEvents.DISCONNECT.register((clientPlayNetworkHandler, minecraftClient) -> {
+            // Invalidate renderer queue on disconnect
+            renderer.clearQueue();
+        });
+
+
+        WorldRenderEvents.END.register(worldRenderContext -> Renderer.positionMatrixAndRender(worldRenderContext, () -> renderer.renderQueue(worldRenderContext)));
+
 
         // Register shutdown event
         ClientLifecycleEvents.CLIENT_STOPPING.register(ModuleConfigManager::shutdown);

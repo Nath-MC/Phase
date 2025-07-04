@@ -10,5 +10,7 @@
   "modules.movements.nofall.description": "Annule les dégâts de chute",
   "modules.movements.nofall.failed_to_pickup": "N'a pas pu récupérer l'eau/la neige, désolé !",
   "modules.category.visuals.title": "Visuels",
-  "modules.category.movements.title": "Mouvements"
+  "modules.category.movements.title": "Mouvements",
+  "modules.movements.airjump.description": "Te permet de sauter en étant dans les airs",
+  "modules.visuals.esp.description": "Voit les joueurs à travers les murs"
 }
