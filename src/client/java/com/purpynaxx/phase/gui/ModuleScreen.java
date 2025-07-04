@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -112,7 +113,9 @@ public class ModuleScreen extends Screen {
         ContainerPanelWidget panelWidget = new ContainerPanelWidget(category, x, y, this.width, this.height, collapsed);
 
         if (!modules.isEmpty()) {
-            modules.forEach(panelWidget::addModuleEntry);
+            modules.stream()   // Sort modules by name in natural order
+                    .sorted(Comparator.comparing(Module::getName, String::compareToIgnoreCase))
+                    .forEach(panelWidget::addModuleEntry);
         } else {
             LOGGER.warn("No modules registered for the category {}", category.name());
         }
