@@ -15,27 +15,24 @@ import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
 import static com.purpynaxx.phase.Phase.LOGGER;
 import static java.lang.reflect.Modifier.isAbstract;
 
-public final class ModuleManager {
+public class Modules {
+
+    private static final Modules INSTANCE = new Modules();
+
+    private static final Categories categories = Categories.getInstance();
 
     private final Set<Module> modules = new HashSet<>();
-    private final Set<Module.Category> categories = new HashSet<>();
+
     private final Map<Class<? extends Module>, Module> classModuleBaseMap = new HashMap<>();
-    private final Map<Module.Category, Set<Module>> modulesByCategoryMap = new HashMap<>();
+
     private boolean registered;
+
     private int failedInstantiation;
 
-    private ModuleManager() {}
+    private Modules() {}
 
-    public static ModuleManager getInstance() {
-        return Holder.INSTANCE;
-    }
-
-    public @UnmodifiableView Map<Module.Category, Set<Module>> getModulesByCategoryMap() {
-        return Collections.unmodifiableMap(modulesByCategoryMap);
-    }
-
-    public @UnmodifiableView Set<Module.Category> getCategories() {
-        return Collections.unmodifiableSet(categories);
+    public static Modules getInstance() {
+        return INSTANCE;
     }
 
     public boolean init() {
@@ -55,10 +52,6 @@ public final class ModuleManager {
                     constructor.setAccessible(true);
                     Module module = constructor.newInstance();
                     this.add(moduleClass, module);
-
-                    Module.Category category = module.getCategory();
-                    this.modulesByCategoryMap.putIfAbsent(category, new HashSet<>());
-                    this.modulesByCategoryMap.get(category).add(module);
                 } catch (NoSuchMethodException e) {
                     this.onFail(moduleClass.getSimpleName(), new Exception("No default constructor found", e));
                 } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
@@ -88,7 +81,7 @@ public final class ModuleManager {
     private void add(Class<? extends Module> clazz, Module m) {
         this.classModuleBaseMap.put(clazz, m);
         this.modules.add(m);
-        this.categories.add(m.getCategory());
+        categories.submit(m);
         if (IS_DEV_ENVIRONMENT) LOGGER.info("{} has been registered.", clazz.getSimpleName());
     }
 
@@ -101,26 +94,20 @@ public final class ModuleManager {
         return Collections.unmodifiableSet(modules);
     }
 
-    public <T extends Module> T getModuleByClass(@NotNull Class<T> clazz) {
+    public <T extends Module> T getModule(@NotNull Class<T> clazz) {
         return clazz.cast(classModuleBaseMap.get(clazz));
-    }
-
-    public <T extends Module> void setModuleActive(Class<T> clazz, boolean active) {
-        if (clazz == null) return;
-        T module = this.getModuleByClass(clazz);
-        if (module != null) module.setActive(active);
     }
 
     public <T extends Module> boolean isModuleActive(Class<T> clazz) {
         if (clazz == null) return false;
-        T module = this.getModuleByClass(clazz);
+        T module = this.getModule(clazz);
         if (module != null) return module.isActive();
         return false;
     }
 
     public <T extends Module> void toggleModuleActive(Class<T> clazz) {
         if (clazz == null) return;
-        T module = this.getModuleByClass(clazz);
+        T module = this.getModule(clazz);
         if (module != null) module.toggle();
     }
 
@@ -132,12 +119,6 @@ public final class ModuleManager {
                 return setting;
 
         return null;
-    }
-
-    private static class Holder {
-
-        private static final ModuleManager INSTANCE = new ModuleManager();
-
     }
 
 }

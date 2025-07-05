@@ -5,8 +5,10 @@ import com.purpynaxx.phase.gui.serialization.Container;
 import com.purpynaxx.phase.gui.serialization.PanelState;
 import com.purpynaxx.phase.gui.widgets.ContainerPanelWidget;
 import com.purpynaxx.phase.gui.widgets.ModuleWidget;
+import com.purpynaxx.phase.modules.impl.Categories;
+import com.purpynaxx.phase.modules.impl.Category;
 import com.purpynaxx.phase.modules.impl.Module;
-import com.purpynaxx.phase.modules.impl.ModuleManager;
+import com.purpynaxx.phase.modules.impl.Modules;
 import com.purpynaxx.phase.modules.visuals.GUI;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -31,9 +33,10 @@ public class ModuleScreen extends Screen {
 
     private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
 
-    private final List<ContainerPanelWidget> panels = new ArrayList<>();
+    private static final Modules modules = Modules.getInstance();
+    private static final Categories categories = Categories.getInstance();
 
-    private final ModuleManager manager = ModuleManager.getInstance();
+    private final List<ContainerPanelWidget> panels = new ArrayList<>();
 
     private final @Nullable Screen parent;
 
@@ -48,7 +51,7 @@ public class ModuleScreen extends Screen {
         loadPanelStates();
 
         List<PanelState> savedStates = currentContainer.panelStates();
-        int categoryCount = this.manager.getCategories().size();
+        int categoryCount = categories.getCategoryCount();
 
         if (shouldCreateDefaultLayout(savedStates, categoryCount)) {
             createDefaultPanelLayout(categoryCount);
@@ -73,7 +76,7 @@ public class ModuleScreen extends Screen {
         int startY = this.height / 10;
 
         int index = 0;
-        for (Module.Category category : this.manager.getCategories()) {
+        for (Category category : categories.getCategories()) {
             int x = startX + (index * PANEL_WIDTH) + (index * PANEL_PADDING);
             createAndPopulatePanel(category, x, startY, false);
             index++;
@@ -86,7 +89,7 @@ public class ModuleScreen extends Screen {
 
         for (PanelState state : savedStates) {
             try {
-                Module.Category category = Module.Category.valueOf(state.title().toUpperCase());
+                Category category = Category.valueOf(state.title().toUpperCase());
                 int x = calculateScaledCoordinate(state.x(), savedWidth, this.width);
                 int y = calculateScaledCoordinate(state.y(), savedHeight, this.height);
 
@@ -108,8 +111,8 @@ public class ModuleScreen extends Screen {
                 (int) ((float) coordinate / (float) oldDimension * newDimension);
     }
 
-    private void createAndPopulatePanel(Module.Category category, int x, int y, boolean collapsed) {
-        Set<Module> modules = this.manager.getModulesByCategoryMap().get(category);
+    private void createAndPopulatePanel(Category category, int x, int y, boolean collapsed) {
+        Set<Module> modules = categories.getModulesIn(category);
         ContainerPanelWidget panelWidget = new ContainerPanelWidget(category, x, y, this.width, this.height, collapsed);
 
         if (!modules.isEmpty()) {
@@ -152,7 +155,7 @@ public class ModuleScreen extends Screen {
         this.saveStates();
         this.client.setScreen(this.parent);
 
-        Module GUIModule = this.manager.getModuleByClass(GUI.class);
+        Module GUIModule = modules.getModule(GUI.class);
         boolean currentState = GUIModule.isActive();
 
         if (currentState) {

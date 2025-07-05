@@ -1,7 +1,7 @@
 package com.purpynaxx.phase;
 
 import com.purpynaxx.phase.events.EventManager;
-import com.purpynaxx.phase.modules.impl.ModuleManager;
+import com.purpynaxx.phase.modules.impl.Modules;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import org.slf4j.Logger;
@@ -19,7 +19,7 @@ public class Phase implements ClientModInitializer {
     public void onInitializeClient() {
         long startTime = System.currentTimeMillis();
 
-        ModuleManager moduleManager = ModuleManager.getInstance();
+        Modules modules = Modules.getInstance();
         EventManager eventManager = EventManager.getInstance();
 
         Executors.newSingleThreadExecutor().submit(() -> {
@@ -27,7 +27,7 @@ public class Phase implements ClientModInitializer {
             Thread.currentThread().setName("Phase Initialization");
 
             // Discover and register modules
-            if (!moduleManager.init()) {
+            if (!modules.init()) {
                 LOGGER.warn("Some modules were not instanced properly ! Please check errors above.");
             }
 

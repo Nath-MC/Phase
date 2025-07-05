@@ -3,23 +3,24 @@ package com.purpynaxx.phase.config;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.purpynaxx.phase.modules.impl.Module;
-import com.purpynaxx.phase.modules.impl.ModuleManager;
+import com.purpynaxx.phase.modules.impl.Modules;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
-import org.jetbrains.annotations.UnmodifiableView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class ModuleConfigManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ModuleConfigManager.class);
-    private static final String MODULES_DIR = "modules";
-    private static final ModuleManager moduleManager = ModuleManager.getInstance();
-    public static final @UnmodifiableView Set<Module> modules = moduleManager.getModules();
+    private static final String modules_directory = "modules";
+    private static final Modules modules = Modules.getInstance();
 
     public static void shutdown(MinecraftClient ignored) {
         Executors.newVirtualThreadPerTaskExecutor().submit(ModuleConfigManager::saveAllModules);
@@ -30,7 +31,7 @@ public class ModuleConfigManager {
 
         long startTime = System.currentTimeMillis();
 
-        for (Module module : modules) {
+        for (Module module : modules.getModules()) {
             try {
                 Map<String, Object> settingValues = new HashMap<>();
                 List<Setting<?>> settings = module.getSettings();
@@ -45,7 +46,7 @@ public class ModuleConfigManager {
 
                 ModuleConfig config = new ModuleConfig(module.getName(), settingValues);
 
-                String filename = MODULES_DIR + "/" + module.getName().toLowerCase().replace(" ", "_");
+                String filename = modules_directory + "/" + module.getName().toLowerCase().replace(" ", "_");
                 File configFile = ConfigManager.getConfigFile(filename);
                 ConfigManager.saveData(configFile, ModuleConfig.CODEC, config);
             } catch (Exception e) {
@@ -58,7 +59,7 @@ public class ModuleConfigManager {
 
     public static void loadAllModules() {
         int loadedCount = 0;
-        for (Module module : modules)
+        for (Module module : modules.getModules())
             if (loadModule(module)) loadedCount++;
         if (loadedCount > 0)
             logger.info("Loaded {} module configurations", loadedCount);
@@ -67,7 +68,7 @@ public class ModuleConfigManager {
 
     public static boolean loadModule(Module module) {
         try {
-            String filename = MODULES_DIR + "/" + module.getName().toLowerCase();
+            String filename = modules_directory + "/" + module.getName().toLowerCase();
             File configFile = ConfigManager.getConfigFile(filename);
 
             if (!configFile.exists()) {
@@ -97,7 +98,7 @@ public class ModuleConfigManager {
             String settingId = entry.getKey();
             Object value = entry.getValue();
 
-            Setting<?> setting = moduleManager.getSetting(module, settingId);
+            Setting<?> setting = modules.getSetting(module, settingId);
             if (setting != null) {
                 applySetting(setting, value);
             } else {

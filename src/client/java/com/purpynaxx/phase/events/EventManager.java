@@ -10,7 +10,7 @@ import com.purpynaxx.phase.events.network.PacketEvent;
 import com.purpynaxx.phase.helpers.render.Renderer;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.impl.Module;
-import com.purpynaxx.phase.modules.impl.ModuleManager;
+import com.purpynaxx.phase.modules.impl.Modules;
 import com.purpynaxx.phase.modules.visuals.GUI;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -36,15 +36,19 @@ import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
 
 public class EventManager {
 
-    private static final ModuleManager moduleManager = ModuleManager.getInstance();
+    private static final Modules modules = Modules.getInstance();
+
     private static final MinecraftClient client = MinecraftClient.getInstance();
+
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
+
     private static final Set<Class<? extends Screen>> ignoredScreens = Set.of(
             MessageScreen.class,
             LevelLoadingScreen.class,
             ProgressScreen.class,
             DownloadingTerrainScreen.class
     );
+
     private static final Renderer renderer = Renderer.getInstance();
 
     private EventManager() {}
@@ -59,11 +63,10 @@ public class EventManager {
     }
 
     private void registerModuleListeners() {
-        Set<Module> modules = moduleManager.getModules();
         int listenersRegistered = 0;
         int modulesScanned = 0;
 
-        for (Module module : modules) {
+        for (Module module : modules.getModules()) {
             modulesScanned++;
             int moduleRegistered = 0;
 
@@ -175,7 +178,7 @@ public class EventManager {
         // Register screen events
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade()
-                    && moduleManager.isModuleActive(GUI.class)) {
+                    && modules.isModuleActive(GUI.class)) {
                 ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
             }
 
@@ -184,7 +187,7 @@ public class EventManager {
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
                 if (screen.getFocused() instanceof TextFieldWidget) return;
                 if (keyBinding.matchesKey(key, scancode)) {
-                    moduleManager.toggleModuleActive(GUI.class);
+                    modules.toggleModuleActive(GUI.class);
                 }
             });
         });
@@ -194,7 +197,7 @@ public class EventManager {
 
             // Register tick event for key binding
             if (keyBinding.wasPressed()) {
-                moduleManager.toggleModuleActive(GUI.class);
+                modules.toggleModuleActive(GUI.class);
             }
 
             // Handle renderer tick

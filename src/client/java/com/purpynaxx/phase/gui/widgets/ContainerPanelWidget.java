@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.gui.widgets;
 
+import com.purpynaxx.phase.modules.impl.Category;
 import com.purpynaxx.phase.modules.impl.Module;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -28,7 +29,7 @@ public class ContainerPanelWidget implements Drawable, Element {
 
     private final String title;
 
-    private final Module.Category category;
+    private final Category category;
 
     private final List<ModuleWidget> children = new ArrayList<>();
 
@@ -50,7 +51,7 @@ public class ContainerPanelWidget implements Drawable, Element {
     private double lastClickY;
 
 
-    public ContainerPanelWidget(Module.Category category, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
+    public ContainerPanelWidget(Category category, int x, int y, int screenWidth, int screenHeight, boolean collapsed) {
         this.category = category;
         this.title = category.getFriendlyName();
         this.x = x;

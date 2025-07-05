@@ -16,7 +16,6 @@ import java.util.Locale;
 public abstract class Module {
 
     protected static final MinecraftClient client = MinecraftClient.getInstance();
-    protected static final ModuleManager manager = ModuleManager.getInstance();
     protected static final Renderer renderer = Renderer.getInstance();
 
     protected final String name;
@@ -99,24 +98,4 @@ public abstract class Module {
 
     protected void onDeactivate() {}
 
-    public enum Category {
-        VISUALS(Text.translatable("modules.category.visuals.title")),
-        MOVEMENTS(Text.translatable("modules.category.movements.title")),
-        ;
-
-        private final Text translation;
-
-        Category(Text translation) {
-            this.translation = translation;
-        }
-
-        public String getConstant() {
-            return this.name().toLowerCase(Locale.ROOT);
-        }
-
-        public String getFriendlyName() {
-            String name = this.translation.getString();
-            return name.charAt(0) + name.substring(1).toLowerCase();
-        }
-    }
 }
