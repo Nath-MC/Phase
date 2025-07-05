@@ -74,7 +74,7 @@ public class ContainerPanelWidget implements Drawable, Element {
             moduleY = lastModule.getY() + lastModule.getFinalHeight();
         }
 
-        ModuleWidget moduleWidget = new ModuleWidget(module, moduleX, moduleY, width, moduleHeight);
+        ModuleWidget moduleWidget = new ModuleWidget(module, moduleX, moduleY, width, moduleHeight, this);
 
         // Add listener for module collapse/expand events
         moduleWidget.setCollapseListener(this::updatePanelLayout);
@@ -82,6 +82,14 @@ public class ContainerPanelWidget implements Drawable, Element {
         this.children.add(moduleWidget);
 
         updatePanelHeight();
+    }
+
+    public int getModuleWidgetIndex(ModuleWidget moduleWidget) {
+        return children.indexOf(moduleWidget);
+    }
+
+    public int getModuleWidgetCount() {
+        return children.size();
     }
 
     private void updatePanelLayout() {
@@ -292,10 +300,6 @@ public class ContainerPanelWidget implements Drawable, Element {
 
     public boolean isDragging() {
         return dragging || potentialDrag;
-    }
-
-    public String getTitle() {
-        return title;
     }
 
     @Override

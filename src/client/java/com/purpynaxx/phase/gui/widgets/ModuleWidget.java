@@ -34,6 +34,8 @@ public class ModuleWidget implements Element, Drawable {
 
     private final Module module;
 
+    private final ContainerPanelWidget parent;
+
     private final List<Setting<?>> moduleSettings;
     private final List<SettingWidget<?>> settingWidgets = new ArrayList<>();
 
@@ -56,13 +58,14 @@ public class ModuleWidget implements Element, Drawable {
     private int x;
     private int y;
 
-    public ModuleWidget(Module module, int x, int y, int width, int height) {
+    public ModuleWidget(Module module, int x, int y, int width, int height, ContainerPanelWidget parent) {
         this.module = module;
         this.moduleSettings = module.getSettings();
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        this.parent = parent;
         this.displayName = Text.of(module.getName());
         this.tooltipWidget = createTooltipWidget(module);
         initSettingWidgets();
@@ -154,12 +157,17 @@ public class ModuleWidget implements Element, Drawable {
     }
 
     private void renderSettingsPanel(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Render divider
+        // Render top divider
         context.fill(x, y + height, x + width, y + height + 1, UIConstants.DIVIDER_COLOR);
 
         // Render settings
         for (SettingWidget<?> widget : settingWidgets) {
             widget.render(context, mouseX, mouseY, delta);
+        }
+
+        if (parent.getModuleWidgetIndex(this) != parent.getModuleWidgetCount() - 1) {
+            // Render bottom divider
+            context.fill(x, y + height + settingsHeight - 1, x + width, y + height + settingsHeight, UIConstants.DIVIDER_COLOR);
         }
     }
 
@@ -193,7 +201,7 @@ public class ModuleWidget implements Element, Drawable {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (isMouseOver(mouseX, mouseY, true)) {
             if (button == 0) {
-                module.toggle(); // Use module's toggle method directly
+                module.toggle();
                 return true;
             } else if (button == 1) {
                 toggleCollapsed();
