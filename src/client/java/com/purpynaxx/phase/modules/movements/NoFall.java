@@ -5,7 +5,7 @@ import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.helpers.entity.Player;
 import com.purpynaxx.phase.helpers.render.BlockOverlay;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
-import com.purpynaxx.phase.modules.impl.Module;
+import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.CyclingSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.block.BlockState;

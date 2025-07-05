@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.modules.visuals;
 
 import com.purpynaxx.phase.gui.ModuleScreen;
-import com.purpynaxx.phase.modules.impl.Module;
+import com.purpynaxx.phase.modules.Module;
 import net.minecraft.text.Text;
 
 import java.util.concurrent.Executors;

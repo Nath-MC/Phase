@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.modules.impl;
+package com.purpynaxx.phase.modules;
 
 import com.purpynaxx.phase.config.ModuleConfigManager;
 import com.purpynaxx.phase.settings.Setting;

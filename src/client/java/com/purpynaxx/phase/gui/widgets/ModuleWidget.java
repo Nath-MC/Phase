@@ -3,7 +3,7 @@ package com.purpynaxx.phase.gui.widgets;
 import com.purpynaxx.phase.gui.widgets.settings.BooleanWidget;
 import com.purpynaxx.phase.gui.widgets.settings.CyclingWidget;
 import com.purpynaxx.phase.gui.widgets.settings.SettingWidget;
-import com.purpynaxx.phase.modules.impl.Module;
+import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.BooleanSetting;
 import com.purpynaxx.phase.settings.CyclingSetting;
 import com.purpynaxx.phase.settings.Setting;

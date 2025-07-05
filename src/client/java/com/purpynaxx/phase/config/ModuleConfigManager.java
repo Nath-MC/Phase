@@ -2,8 +2,8 @@ package com.purpynaxx.phase.config;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.purpynaxx.phase.modules.impl.Module;
-import com.purpynaxx.phase.modules.impl.Modules;
+import com.purpynaxx.phase.modules.Module;
+import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;

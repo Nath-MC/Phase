@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.modules.impl;
+package com.purpynaxx.phase.modules;
 
 import net.minecraft.text.Text;
 

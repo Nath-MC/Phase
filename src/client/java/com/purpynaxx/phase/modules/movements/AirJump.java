@@ -2,7 +2,7 @@ package com.purpynaxx.phase.modules.movements;
 
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.helpers.entity.Player;
-import com.purpynaxx.phase.modules.impl.Module;
+import com.purpynaxx.phase.modules.Module;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;

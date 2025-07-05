@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.modules.visuals;
 
 import com.purpynaxx.phase.events.interfaces.world.WorldRender;
-import com.purpynaxx.phase.modules.impl.Module;
+import com.purpynaxx.phase.modules.Module;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;

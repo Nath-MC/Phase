@@ -1,7 +1,7 @@
 package com.purpynaxx.phase;
 
 import com.purpynaxx.phase.events.EventManager;
-import com.purpynaxx.phase.modules.impl.Modules;
+import com.purpynaxx.phase.modules.Modules;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.impl.launch.FabricLauncherBase;
 import org.slf4j.Logger;

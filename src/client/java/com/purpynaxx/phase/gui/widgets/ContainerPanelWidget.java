@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.gui.widgets;
 
-import com.purpynaxx.phase.modules.impl.Category;
-import com.purpynaxx.phase.modules.impl.Module;
+import com.purpynaxx.phase.modules.Category;
+import com.purpynaxx.phase.modules.Module;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
