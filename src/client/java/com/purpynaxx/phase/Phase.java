@@ -17,7 +17,6 @@ public class Phase implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        long startTime = System.currentTimeMillis();
 
         Modules modules = Modules.getInstance();
         EventManager eventManager = EventManager.getInstance();
@@ -25,6 +24,8 @@ public class Phase implements ClientModInitializer {
         Executors.newSingleThreadExecutor().submit(() -> {
 
             Thread.currentThread().setName("Phase Initialization");
+
+            long startTime = System.currentTimeMillis();
 
             // Discover and register modules
             if (!modules.init()) {

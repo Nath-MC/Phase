@@ -16,6 +16,7 @@ import java.util.Locale;
 public abstract class Module {
 
     protected static final MinecraftClient client = MinecraftClient.getInstance();
+    protected static final Modules modules = Modules.getInstance();
     protected static final Renderer renderer = Renderer.getInstance();
 
     protected final String name;

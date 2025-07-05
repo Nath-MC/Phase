@@ -6,6 +6,7 @@ import com.purpynaxx.phase.helpers.entity.Player;
 import com.purpynaxx.phase.helpers.render.BlockOverlay;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.Module;
+import com.purpynaxx.phase.modules.miscellaneous.Debug;
 import com.purpynaxx.phase.settings.CyclingSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.block.BlockState;
@@ -39,8 +40,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.awt.*;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
 
 public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTER {
 
@@ -249,11 +248,12 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
             pickupTimer = 3;
             waterPos = target;
 
-            if (IS_DEV_ENVIRONMENT)
-                if (result != null) {
-                    Color color = new Color(0, 0, 255, 100);
-                    renderer.addRenderable(new BlockOverlay(result.up(), color, true, 200));
-                }
+            if (modules.isModuleActive(Debug.class) && result != null) {
+                Color color = new Color(0, 0, 255, 100);
+                BlockOverlay blockOverlay = new BlockOverlay(result.up(), color, true, 200, true);
+                renderer.addRenderable(blockOverlay);
+            }
+
         } else {
             // Restore if placement failed
             restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);

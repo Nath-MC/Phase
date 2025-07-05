@@ -19,6 +19,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.util.function.Predicate;
 
 import static net.minecraft.client.gl.RenderPipelines.MATRICES_COLOR_FOG_SNIPPET;
 import static net.minecraft.client.gl.RenderPipelines.POSITION_COLOR_SNIPPET;
@@ -95,13 +96,12 @@ public class Renderer {
     }
 
     /**
-     * Removes a specific Renderable object from the render queue.
+     * Removes all Renderable objects that match the given predicate from the render queue.
      *
-     * @param renderable The Renderable object to be removed.
+     * @param predicate The predicate to test each Renderable object against.
      */
-    public void removeRenderable(Renderable renderable) {
-        if (renderable == null) return;
-        renderables.remove(renderable);
+    public void removeRenderablesIf(Predicate<Renderable> predicate) {
+        renderables.removeIf(predicate);
     }
 
 
