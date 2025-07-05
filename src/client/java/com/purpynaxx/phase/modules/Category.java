@@ -7,6 +7,7 @@ import java.util.Locale;
 public enum Category {
     VISUALS(Text.translatable("modules.category.visuals.title")),
     MOVEMENTS(Text.translatable("modules.category.movements.title")),
+    MISCELLANEOUS(Text.translatable("modules.category.miscellaneous.title")),
     ;
 
     private final Text translation;

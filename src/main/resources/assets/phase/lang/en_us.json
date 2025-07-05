@@ -12,5 +12,7 @@
   "modules.category.visuals.title": "Visuals",
   "modules.category.movements.title": "Movements",
   "modules.movements.airjump.description": "Jump while being in the air",
-  "modules.visuals.esp.description": "See players through walls"
+  "modules.visuals.esp.description": "See players through walls",
+  "modules.category.miscellaneous.title": "Misc",
+  "modules.miscellaneous.debug.description": "Debug utility module"
 }
