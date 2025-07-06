@@ -15,11 +15,15 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+/**
+ * ConfigManager is responsible for managing configuration files.
+ * It provides methods to save and load data in NBT format, ensuring the correct directory structure.
+ * The data is wrapped in a root NbtCompound with a specific key for consistency.
+ */
 public final class ConfigManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
-    private static final String root = "data";
     static final Logger logger = LoggerFactory.getLogger("Phase/ConfigManager");
+    private static final String root = "";
 
     /**
      * Resolves a config file path within the default mod config directory.
@@ -50,18 +54,36 @@ public final class ConfigManager {
      * @param <T>   The type of the data.
      */
     public static <T> void saveData(File file, Codec<T> codec, T data) {
+
+        File nbtFile = ensureNbtFile(file);
+
         DataResult<NbtElement> result = codec.encodeStart(NbtOps.INSTANCE, data);
-        Optional<NbtElement> nbtElementOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to encode data to NBT for file {}: {}", file.getName(), errorMsg)).orElseThrow());
+        Optional<NbtElement> nbtElementOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to encode data to NBT for file {}: {}", nbtFile.getName(), errorMsg)).orElseThrow());
 
         NbtElement encodedElement = nbtElementOptional.get();
         NbtCompound rootCompound = new NbtCompound();
         rootCompound.put(root, encodedElement);
 
         try {
-            NbtIo.write(rootCompound, file.toPath());
+            NbtIo.write(rootCompound, nbtFile.toPath());
         } catch (IOException e) {
-            logger.error("Failed to write data to config file: {}", file.getAbsolutePath(), e);
+            logger.error("Failed to write data to config file: {}", nbtFile.getAbsolutePath(), e);
         }
+    }
+
+    /**
+     * Ensures the file has the ".nbt" extension.
+     * If the file does not have an extension, it appends ".nbt".
+     *
+     * @param file The file to ensure the extension for.
+     * @return A new File object with the ensured ".nbt" extension.
+     */
+    private static File ensureNbtFile(File file) {
+        // Inexplicitly ensure the extension is set to ".nbt"
+        String fileName = file.getName();
+        int dotIndex = fileName.lastIndexOf('.');
+        String baseName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+        return new File(file.getParent(), baseName + ".nbt");
     }
 
     /**
@@ -75,27 +97,31 @@ public final class ConfigManager {
      * @return The loaded data, or default data if loading fails or file doesn't exist.
      */
     public static <T> T loadData(File file, Codec<T> codec, Supplier<T> defaultSupplier) {
-        if (!file.exists())
+
+        File nbtFile = ensureNbtFile(file);
+
+        if (!nbtFile.exists())
             return defaultSupplier.get();
 
         try {
-            NbtCompound rootCompound = NbtIo.read((file.toPath()));
+            NbtCompound rootCompound = NbtIo.read((nbtFile.toPath()));
 
             if (rootCompound != null && rootCompound.contains(root)) {
                 NbtElement encodedElement = rootCompound.get(root);
                 DataResult<T> result = codec.parse(NbtOps.INSTANCE, encodedElement);
-                Optional<T> loadedDataOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to parse data from config file {}: {}", file.getName(), errorMsg)).orElseThrow());
+                Optional<T> loadedDataOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to parse data from config file {}: {}", nbtFile.getName(), errorMsg)).orElseThrow());
                 return loadedDataOptional.get();
             } else {
-                logger.warn("Config file {} does not contain the expected root key '{}', using default data.", file.getName(), root);
+                logger.warn("Config file {} does not contain the expected root key '{}', using default data.", nbtFile.getName(), root);
                 return defaultSupplier.get();
             }
         } catch (IOException e) {
-            logger.error("Failed to read config file {}:", file.getAbsolutePath(), e);
+            logger.error("Failed to read config file {}:", nbtFile.getAbsolutePath(), e);
             return defaultSupplier.get();
         } catch (Exception e) {
-            logger.error("Unexpected error loading data from {}:", file.getAbsolutePath(), e);
+            logger.error("Unexpected error loading data from {}:", nbtFile.getAbsolutePath(), e);
             return defaultSupplier.get();
         }
     }
+
 }
