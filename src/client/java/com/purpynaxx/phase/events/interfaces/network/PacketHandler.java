@@ -3,15 +3,15 @@ package com.purpynaxx.phase.events.interfaces.network;
 import net.minecraft.network.packet.Packet;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-public interface PacketHandler {
+public class PacketHandler {
 
-    interface IN {
+    public interface IN {
 
         void onPacketReceive(Packet<?> packet, CallbackInfo event);
 
     }
 
-    interface OUT {
+    public interface OUT {
 
         void onPacketSend(Packet<?> packet, CallbackInfo event);
 

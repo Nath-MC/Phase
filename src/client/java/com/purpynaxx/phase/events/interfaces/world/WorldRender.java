@@ -2,7 +2,7 @@ package com.purpynaxx.phase.events.interfaces.world;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 
-public interface WorldRender {
+public class WorldRender {
 
     /**
      * Called after all world rendering is done.
@@ -11,7 +11,7 @@ public interface WorldRender {
      *
      * @see net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.End
      */
-    interface END {
+    public interface END {
 
         void onWorldRenderEnd(WorldRenderContext context);
 

@@ -2,15 +2,15 @@ package com.purpynaxx.phase.events.interfaces.world;
 
 import net.minecraft.client.world.ClientWorld;
 
-public interface WorldTick {
+public class WorldTick {
 
-    interface BEFORE {
+    public interface BEFORE {
 
         void beforeWorldTick(ClientWorld world);
 
     }
 
-    interface AFTER {
+    public interface AFTER {
 
         void afterWorldTick(ClientWorld world);
 
