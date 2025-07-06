@@ -19,6 +19,7 @@ public final class ConfigManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
     private static final String root = "data";
+    static final Logger logger = LoggerFactory.getLogger("Phase/ConfigManager");
 
     /**
      * Resolves a config file path within the default mod config directory.

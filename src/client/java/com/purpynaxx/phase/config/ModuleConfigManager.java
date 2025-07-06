@@ -7,7 +7,6 @@ import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
@@ -18,7 +17,7 @@ import java.util.concurrent.Executors;
 
 public class ModuleConfigManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(ModuleConfigManager.class);
+    private static final Logger logger = ConfigManager.logger;
     private static final String modules_directory = "modules";
     private static final Modules modules = Modules.getInstance();
 

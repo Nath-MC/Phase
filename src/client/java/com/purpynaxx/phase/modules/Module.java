@@ -32,7 +32,7 @@ public abstract class Module {
         this.name = this.getClass().getSimpleName();
         this.description = description;
         this.category = determineCategory();
-        this.logger = LoggerFactory.getLogger(this.name);
+        this.logger = LoggerFactory.getLogger("Phase/" + this.name);
         this.active = registerSetting(new BooleanSetting("active", Text.translatable("settings.screen.active.title"), Text.translatable("settings.screen.active.description"), false));
     }
 

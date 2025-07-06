@@ -40,7 +40,7 @@ public class EventManager {
 
     private static final MinecraftClient client = MinecraftClient.getInstance();
 
-    private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
+    private static final Logger logger = LoggerFactory.getLogger("Phase/EventManager");
 
     private static final Set<Class<? extends Screen>> ignoredScreens = Set.of(
             MessageScreen.class,
