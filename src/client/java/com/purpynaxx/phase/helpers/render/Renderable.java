@@ -2,23 +2,45 @@ package com.purpynaxx.phase.helpers.render;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 
-public interface Renderable {
+import java.awt.*;
+
+public abstract class Renderable {
+
+    protected static final Renderer renderer = Renderer.getInstance();
+
+    protected final Color color;
+    protected final boolean debug;
+    protected int ticksToLive;
 
     /**
-     * Renders the object in the world.
+     * Constructs a new Renderable.
      *
-     * @param context The current world render context.
+     * @param color       The color of the overlay.
+     * @param ticksToLive The number of ticks this object should live before being removed (-1 for until manually removed).
+     * @param debug       Whether this is overlay is used for debugging purposes.
      */
-    void render(WorldRenderContext context);
+    public Renderable(Color color, int ticksToLive, boolean debug) {
+        this.color = color;
+        this.ticksToLive = ticksToLive;
+        this.debug = debug;
+    }
 
+    public final boolean isExpired() {
+        return ticksToLive <= 0;
+    }
 
-    void tick();
+    public final void tick() {
+        if (ticksToLive > 0) {
+            ticksToLive--;
+        }
+    }
 
-    /**
-     * Checks if the object's time-to-live has expired.
-     *
-     * @return true if the object should be removed from the queue, false otherwise.
-     */
-    boolean isExpired();
+    public final boolean isDebug() {
+        return debug;
+    }
+
+    abstract void render(WorldRenderContext context);
+
+    public abstract boolean equals(Renderable renderable);
 
 }

@@ -3,22 +3,23 @@ package com.purpynaxx.phase.helpers.render;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.purpynaxx.phase.modules.Modules;
+import com.purpynaxx.phase.modules.miscellaneous.Debug;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gl.UniformType;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.*;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.OptionalDouble;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
 import static net.minecraft.client.gl.RenderPipelines.MATRICES_COLOR_FOG_SNIPPET;
@@ -28,14 +29,13 @@ import static net.minecraft.client.render.RenderPhase.VIEW_OFFSET_Z_LAYERING;
 
 /**
  * Helper class for rendering visual debug elements.
- * It provides static methods to draw boxes directly in the world.
  */
 public final class Renderer {
 
     private static final Renderer INSTANCE = new Renderer();
-    private final List<Renderable> renderables = new ArrayList<>();
+    private static final Modules modules = Modules.getInstance();
 
-    private final List<AbstractRenderable> renderables = new CopyOnWriteArrayList<>();
+    private final List<Renderable> renderables = new CopyOnWriteArrayList<>();
 
     private Renderer() {}
 
@@ -55,19 +55,19 @@ public final class Renderer {
         matrixStack.pop();
     }
 
+    public static boolean isDebug(Renderable renderable) {
+        return renderable.isDebug();
+    }
+
     /**
      * Adds a Renderable object to the render queue.
      *
      * @param renderable The Renderable object to be added.
      */
     public void addRenderable(Renderable renderable) {
-        if (renderable == null) return;
-        renderables.removeIf(existing -> {
-            if (existing instanceof BlockOverlay blockOverlay && renderable instanceof BlockOverlay newBlockOverlay) {
-                return blockOverlay.getBlockPos().equals(newBlockOverlay.getBlockPos());
-            }
-            return existing.equals(renderable);
-        });
+        Objects.requireNonNull(renderable);
+
+        renderables.removeIf(existing -> existing.equals(renderable));
         renderables.add(renderable);
     }
 
@@ -77,12 +77,14 @@ public final class Renderer {
      * @param renderContext The current world render context.
      */
     public void renderQueue(WorldRenderContext renderContext) {
-        renderables.forEach(renderable -> renderable.render(renderContext));
+        for (Renderable renderable : renderables) {
+            if (renderable.isDebug() && !modules.isModuleActive(Debug.class)) continue;
+            renderable.render(renderContext);
+        }
     }
 
     /**
      * Updates the state of all Renderable objects in the queue.
-     * This method should be called every tick to update the renderables.
      */
     public void tick() {
         renderables.forEach(Renderable::tick);
@@ -153,11 +155,6 @@ public final class Renderer {
 
         VertexConsumer linesVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_LINES_LAYER);
 
-        int r = color.getRed();
-        int g = color.getGreen();
-        int b = color.getBlue();
-        int a = color.getAlpha();
-
         box = box.offset(renderContext.camera().getPos().negate());
 
         float minX = (float) box.minX;
@@ -168,44 +165,23 @@ public final class Renderer {
         float maxY = (float) box.maxY;
         float maxZ = (float) box.maxZ;
 
-        // Bottom face
-        linesVertexConsumer.vertex(matrix, minX, minY, minZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, maxX, minY, minZ).color(r, g, b, 255);
+        // Bottom face outline
+        line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
+        line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
+        line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, minX, minY, maxZ);
+        line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, minY, minZ);
 
-        linesVertexConsumer.vertex(matrix, maxX, minY, minZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, 255);
+        // Top face outline
+        line(matrix, linesVertexConsumer, color, minX, maxY, minZ, maxX, maxY, minZ);
+        line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, maxY, maxZ);
+        line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
+        line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
 
-        linesVertexConsumer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, minX, minY, maxZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, minX, minY, maxZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, minX, minY, minZ).color(r, g, b, 255);
-
-        // Top face
-        linesVertexConsumer.vertex(matrix, minX, maxY, minZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, minX, maxY, minZ).color(r, g, b, 255);
-
-        // Vertical edges
-        linesVertexConsumer.vertex(matrix, minX, minY, minZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, minX, maxY, minZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, maxX, minY, minZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, 255);
-
-        linesVertexConsumer.vertex(matrix, minX, minY, maxZ).color(r, g, b, 255);
-        linesVertexConsumer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, 255);
+        // Vertical edges outline
+        line(matrix, linesVertexConsumer, color, minX, minY, minZ, minX, maxY, minZ);
+        line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, maxY, minZ);
+        line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
+        line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, maxY, maxZ);
 
         ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
 
@@ -213,45 +189,260 @@ public final class Renderer {
             VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
 
             // Down face (-Y)
-            quadsVertexConsumer.vertex(matrix, maxX, minY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, minY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, minY, minZ).color(r, g, b, a);
+            quad(matrix, quadsVertexConsumer, color,
+                    maxX, minY, minZ,
+                    maxX, minY, maxZ,
+                    minX, minY, maxZ,
+                    minX, minY, minZ
+            );
 
             // Up face (+Y)
-            quadsVertexConsumer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, maxY, minZ).color(r, g, b, a);
+            quad(matrix, quadsVertexConsumer, color,
+                    minX, maxY, maxZ,
+                    maxX, maxY, maxZ,
+                    maxX, maxY, minZ,
+                    minX, maxY, minZ
+            );
 
             // North face (-Z)
-            quadsVertexConsumer.vertex(matrix, minX, maxY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, minY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, minY, minZ).color(r, g, b, a);
+            quad(matrix, quadsVertexConsumer, color,
+                    minX, maxY, minZ,
+                    maxX, maxY, minZ,
+                    maxX, minY, minZ,
+                    minX, minY, minZ
+            );
 
             // South face (+Z)
-            quadsVertexConsumer.vertex(matrix, minX, minY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, a);
+            quad(matrix, quadsVertexConsumer, color,
+                    minX, minY, maxZ,
+                    maxX, minY, maxZ,
+                    maxX, maxY, maxZ,
+                    minX, maxY, maxZ
+            );
 
             // West face (-X)
-            quadsVertexConsumer.vertex(matrix, minX, minY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, maxY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, minX, minY, minZ).color(r, g, b, a);
+            quad(matrix, quadsVertexConsumer, color,
+                    minX, minY, maxZ,
+                    minX, maxY, maxZ,
+                    minX, maxY, minZ,
+                    minX, minY, minZ
+            );
 
             // East face (+X)
-            quadsVertexConsumer.vertex(matrix, maxX, minY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, a);
-            quadsVertexConsumer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, a);
+            quad(matrix, quadsVertexConsumer, color,
+                    maxX, minY, minZ,
+                    maxX, maxY, minZ,
+                    maxX, maxY, maxZ,
+                    maxX, minY, maxZ
+            );
 
             ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
         }
     }
 
+    /**
+     * Draws a face of a block at the specified BlockPos with the given color.
+     *
+     * @param renderContext The current render context
+     * @param blockPos      The world-space BlockPos where the face will be rendered.
+     * @param direction     The direction of the face to be rendered.
+     * @param color         The color for the face. The alpha component of the color isn't used if {@code fill} is false.
+     * @param fill          Whether to fill the face with the color or just draw the outline.
+     */
+    public void drawFace(WorldRenderContext renderContext, BlockPos blockPos, Direction direction, Color color, boolean fill) {
+        MatrixStack matrixStack = renderContext.matrixStack();
+        Matrix4f matrix = matrixStack.peek().getPositionMatrix();
+
+        Vec3d offset = renderContext.camera().getPos().negate();
+
+        float minX = blockPos.getX() + (float) offset.x;
+        float minY = blockPos.getY() + (float) offset.y;
+        float minZ = blockPos.getZ() + (float) offset.z;
+
+        float maxX = minX + 1.0F;
+        float maxY = minY + 1.0F;
+        float maxZ = minZ + 1.0F;
+
+        VertexConsumer linesVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_LINES_LAYER);
+
+        switch (direction) {
+            case DOWN -> {
+                line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
+                line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
+                line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, minX, minY, maxZ);
+                line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, minY, minZ);
+
+                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+
+                if (fill) {
+                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+                    quad(matrix, quadsVertexConsumer, color,
+                            maxX, minY, minZ,
+                            maxX, minY, maxZ,
+                            minX, minY, maxZ,
+                            minX, minY, minZ
+                    );
+                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+                }
+            }
+            case UP -> {
+                line(matrix, linesVertexConsumer, color, minX, maxY, minZ, maxX, maxY, minZ);
+                line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, maxY, maxZ);
+                line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
+                line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
+
+                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+
+                if (fill) {
+                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+                    quad(matrix, quadsVertexConsumer, color,
+                            minX, maxY, maxZ,
+                            maxX, maxY, maxZ,
+                            maxX, maxY, minZ,
+                            minX, maxY, minZ
+                    );
+                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+                }
+            }
+            case NORTH -> {
+                line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
+                line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, maxY, minZ);
+                line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, minX, maxY, minZ);
+                line(matrix, linesVertexConsumer, color, minX, maxY, minZ, minX, minY, minZ);
+
+                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+
+                if (fill) {
+                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+                    quad(matrix, quadsVertexConsumer, color,
+                            minX, maxY, minZ,
+                            maxX, maxY, minZ,
+                            maxX, minY, minZ,
+                            minX, minY, minZ
+                    );
+                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+                }
+            }
+            case SOUTH -> {
+                line(matrix, linesVertexConsumer, color, minX, minY, maxZ, maxX, minY, maxZ);
+                line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
+                line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
+                line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, minY, maxZ);
+
+                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+
+                if (fill) {
+                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+                    quad(matrix, quadsVertexConsumer, color,
+                            minX, minY, maxZ,
+                            maxX, minY, maxZ,
+                            maxX, maxY, maxZ,
+                            minX, maxY, maxZ
+                    );
+                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+                }
+            }
+            case WEST -> {
+                line(matrix, linesVertexConsumer, color, minX, minY, minZ, minX, minY, maxZ);
+                line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, maxY, maxZ);
+                line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
+                line(matrix, linesVertexConsumer, color, minX, maxY, minZ, minX, minY, minZ);
+
+                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+
+                if (fill) {
+                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+                    quad(matrix, quadsVertexConsumer, color,
+                            minX, minY, maxZ,
+                            minX, maxY, maxZ,
+                            minX, maxY, minZ,
+                            minX, minY, minZ
+                    );
+                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+                }
+            }
+            case EAST -> {
+                line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
+                line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
+                line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, maxX, maxY, minZ);
+                line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, minY, minZ);
+
+                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+
+                if (fill) {
+                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+                    quad(matrix, quadsVertexConsumer, color,
+                            maxX, minY, minZ,
+                            maxX, maxY, minZ,
+                            maxX, maxY, maxZ,
+                            maxX, minY, maxZ
+                    );
+                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper method to draw a quad (four vertices).
+     *
+     * @param matrix   The transformation matrix.
+     * @param consumer The vertex consumer to draw to.
+     * @param color    The color of the quad.
+     * @param x1       X-coordinate of the first vertex.
+     * @param y1       Y-coordinate of the first vertex.
+     * @param z1       Z-coordinate of the first vertex.
+     * @param x2       X-coordinate of the second vertex.
+     * @param y2       Y-coordinate of the second vertex.
+     * @param z2       Z-coordinate of the second vertex.
+     * @param x3       X-coordinate of the third vertex.
+     * @param y3       Y-coordinate of the third vertex.
+     * @param z3       Z-coordinate of the third vertex.
+     * @param x4       X-coordinate of the fourth vertex.
+     * @param y4       Y-coordinate of the fourth vertex.
+     * @param z4       Z-coordinate of the fourth vertex.
+     */
+    private void quad(Matrix4f matrix, VertexConsumer consumer, Color color,
+                      float x1, float y1, float z1,
+                      float x2, float y2, float z2,
+                      float x3, float y3, float z3,
+                      float x4, float y4, float z4) {
+
+        int r = color.getRed();
+        int g = color.getGreen();
+        int b = color.getBlue();
+        int a = color.getAlpha();
+
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a);
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a);
+        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a);
+        consumer.vertex(matrix, x4, y4, z4).color(r, g, b, a);
+    }
+
+    /**
+     * Helper method to draw a line (two vertices).
+     *
+     * @param matrix   The transformation matrix.
+     * @param consumer The vertex consumer to draw to.
+     * @param color    The color of the line.
+     * @param x1       X-coordinate of the first vertex.
+     * @param y1       Y-coordinate of the first vertex.
+     * @param z1       Z-coordinate of the first vertex.
+     * @param x2       X-coordinate of the second vertex.
+     * @param y2       Y-coordinate of the second vertex.
+     * @param z2       Z-coordinate of the second vertex.
+     */
+    private void line(Matrix4f matrix, VertexConsumer consumer, Color color,
+                      float x1, float y1, float z1,
+                      float x2, float y2, float z2) {
+
+        int r = color.getRed();
+        int g = color.getGreen();
+        int b = color.getBlue();
+
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, 255);
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, 255);
+    }
 
     private static class Layers {
 
