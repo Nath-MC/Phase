@@ -43,4 +43,8 @@ public abstract class Setting<T> {
         this.value = value == null ? this.defaultValue : value;
     }
 
+    public boolean isDefault() {
+        return value.equals(defaultValue);
+    }
+
 }

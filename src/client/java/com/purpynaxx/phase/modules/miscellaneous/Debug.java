@@ -1,6 +1,5 @@
 package com.purpynaxx.phase.modules.miscellaneous;
 
-import com.purpynaxx.phase.helpers.render.BlockOverlay;
 import com.purpynaxx.phase.modules.Module;
 import net.minecraft.text.Text;
 
@@ -10,11 +9,6 @@ public class Debug extends Module {
 
     private Debug() {
         super(description);
-    }
-
-    @Override
-    protected void onDeactivate() {
-        renderer.removeRenderablesIf(renderable -> ((BlockOverlay) renderable).isDebug());
     }
 
 }

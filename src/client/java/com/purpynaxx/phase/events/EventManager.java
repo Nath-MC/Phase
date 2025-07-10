@@ -3,15 +3,18 @@ package com.purpynaxx.phase.events;
 import com.purpynaxx.phase.config.ModuleConfigManager;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
+import com.purpynaxx.phase.events.interfaces.world.WorldChunkEvent;
 import com.purpynaxx.phase.events.interfaces.world.WorldConnectivity;
 import com.purpynaxx.phase.events.interfaces.world.WorldRender;
 import com.purpynaxx.phase.events.interfaces.world.WorldTick;
 import com.purpynaxx.phase.events.network.PacketEvent;
+import com.purpynaxx.phase.gui.widgets.settings.PositionInputWidget;
 import com.purpynaxx.phase.helpers.render.Renderer;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.modules.visuals.GUI;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -133,6 +136,13 @@ public class EventManager {
                         }
                     }));
 
+            moduleRegistered += registerListener(module, WorldChunkEvent.LOAD.class,
+                    listener -> ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+                        if (module.isActive() && isReady()) {
+                            safelyExecute(() -> listener.onChunkLoad(world, chunk), "onChunkLoad", module);
+                        }
+                    }));
+
             listenersRegistered += moduleRegistered;
 
             if (moduleRegistered == 0 && IS_DEV_ENVIRONMENT) {
@@ -185,7 +195,8 @@ public class EventManager {
             if (ignoredScreens.contains(screen.getClass())) return;
 
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
-                if (screen.getFocused() instanceof TextFieldWidget) return;
+                if (screen.getFocused() instanceof TextFieldWidget || screen.getFocused() instanceof PositionInputWidget)
+                    return;
                 if (keyBinding.matchesKey(key, scancode)) {
                     modules.toggleModuleActive(GUI.class);
                 }
