@@ -3,7 +3,9 @@ package com.purpynaxx.phase.events.interfaces.network;
 import net.minecraft.network.packet.Packet;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-public class PacketHandler {
+public final class PacketHandler {
+
+    private PacketHandler() {}
 
     public interface IN {
 

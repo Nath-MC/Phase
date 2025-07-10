@@ -30,13 +30,14 @@ import static net.minecraft.client.render.RenderPhase.VIEW_OFFSET_Z_LAYERING;
  * Helper class for rendering visual debug elements.
  * It provides static methods to draw boxes directly in the world.
  */
-public class Renderer {
+public final class Renderer {
 
     private static final Renderer INSTANCE = new Renderer();
     private final List<Renderable> renderables = new ArrayList<>();
 
     private Renderer() {
     }
+    private Renderer() {}
 
     public static Renderer getInstance() {
         return INSTANCE;

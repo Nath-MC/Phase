@@ -2,7 +2,9 @@ package com.purpynaxx.phase.events.interfaces.world;
 
 import net.minecraft.client.world.ClientWorld;
 
-public class WorldTick {
+public final class WorldTick {
+
+    private WorldTick() {}
 
     public interface BEFORE {
 

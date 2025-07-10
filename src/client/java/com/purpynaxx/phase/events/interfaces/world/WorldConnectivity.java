@@ -3,7 +3,9 @@ package com.purpynaxx.phase.events.interfaces.world;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 
-public class WorldConnectivity {
+public final class WorldConnectivity {
+
+    private WorldConnectivity() {}
 
     public interface JOIN {
 

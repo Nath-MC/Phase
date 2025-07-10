@@ -9,7 +9,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Utility class with helper methods for player-related operations.
  */
-public class Player {
+public final class Player {
 
     /**
      * Sets the player's rotation (yaw and pitch) to face a specific Vec3d.
