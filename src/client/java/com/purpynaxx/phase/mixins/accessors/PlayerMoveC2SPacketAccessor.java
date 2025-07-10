@@ -7,7 +7,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(PlayerMoveC2SPacket.class)
 public interface PlayerMoveC2SPacketAccessor {
+
     @Accessor("onGround")
     @Mutable
     void setOnGround(boolean onGround);
+
 }

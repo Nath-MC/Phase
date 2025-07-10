@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.List;
 
 public record Container(List<PanelState> panelStates, int screenWidth, int screenHeight) {
+
     public static final Codec<Container> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     Codec.list(PanelState.CODEC).fieldOf("panelStates").forGetter(Container::panelStates),
@@ -13,4 +14,5 @@ public record Container(List<PanelState> panelStates, int screenWidth, int scree
                     Codec.INT.fieldOf("screenHeight").forGetter(Container::screenHeight)
             ).apply(instance, Container::new)
     );
+
 }

@@ -21,4 +21,5 @@ public class CyclingSetting<T extends Enum<T>> extends Setting<T> {
         this.setValue(this.enumValues.get(nextIndex));
         this.currentIndex = nextIndex;
     }
+
 }

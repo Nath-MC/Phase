@@ -12,4 +12,5 @@ public interface TitleScreenMixin {
 
     @Accessor
     void setDoBackgroundFade(boolean doBackGroundFade);
+
 }

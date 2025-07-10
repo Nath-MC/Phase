@@ -19,11 +19,16 @@ public abstract class PacketEvent {
 
     @FunctionalInterface
     public interface IN {
+
         void onPacketReceive(Packet<?> packet, CallbackInfo event);
+
     }
 
     @FunctionalInterface
     public interface OUT {
+
         void onPacketSend(Packet<?> packet, CallbackInfo event);
+
     }
+
 }

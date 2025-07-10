@@ -54,4 +54,5 @@ public class TooltipWidget implements Drawable {
             textY += textRenderer.fontHeight;
         }
     }
+
 }

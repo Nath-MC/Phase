@@ -21,4 +21,5 @@ public class ClientConnectionMixin {
     private void send(Packet<?> packet, CallbackInfo ci) {
         PacketEvent.OUT.invoker().onPacketSend(packet, ci);
     }
+
 }

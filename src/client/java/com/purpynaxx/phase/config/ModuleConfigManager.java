@@ -184,6 +184,7 @@ public class ModuleConfigManager {
      * Represents the configuration data for a single module
      */
     record ModuleConfig(String moduleName, Map<String, Object> settingValues) {
+
         public static final Codec<ModuleConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.fieldOf("moduleName").forGetter(ModuleConfig::moduleName),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).fieldOf("settingValues").forGetter(config -> {
@@ -200,5 +201,7 @@ public class ModuleConfigManager {
             this.moduleName = moduleName;
             this.settingValues = new HashMap<>(settingValues);
         }
+
     }
+
 }

@@ -12,4 +12,5 @@ public class BooleanSetting extends Setting<Boolean> {
         boolean initialState = this.getValue();
         this.setValue(!initialState);
     }
+
 }
