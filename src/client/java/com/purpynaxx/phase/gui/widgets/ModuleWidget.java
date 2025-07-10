@@ -3,6 +3,7 @@ package com.purpynaxx.phase.gui.widgets;
 import com.purpynaxx.phase.gui.widgets.settings.BooleanWidget;
 import com.purpynaxx.phase.gui.widgets.settings.CyclingWidget;
 import com.purpynaxx.phase.gui.widgets.settings.SettingWidget;
+import com.purpynaxx.phase.helpers.color.ColorHelper;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.BooleanSetting;
 import com.purpynaxx.phase.settings.CyclingSetting;
@@ -29,7 +30,7 @@ public class ModuleWidget implements Element, Drawable {
 
     static {
         SETTING_WIDGET_FACTORIES.put(BooleanSetting.class, (SettingWidgetFactory<BooleanSetting>) BooleanWidget::new);
-        SETTING_WIDGET_FACTORIES.put(CyclingSetting.class, (setting, x, y, width) -> new CyclingWidget((CyclingSetting<?>) setting, x, y, width));
+        SETTING_WIDGET_FACTORIES.put(CyclingSetting.class, (SettingWidgetFactory<CyclingSetting<?>>) CyclingWidget::new);
     }
 
     private final Module module;
@@ -83,7 +84,7 @@ public class ModuleWidget implements Element, Drawable {
         int settingY = this.y + this.height;
 
         for (Setting<?> setting : moduleSettings) {
-            SettingWidget<?> widget = createSettingWidget(setting, this.x, settingY, this.width);
+            SettingWidget<?> widget = createSettingWidget(setting, this.x, settingY);
             if (widget != null) {
                 settingWidgets.add(widget);
                 int widgetHeight = widget.getHeight();
@@ -94,10 +95,10 @@ public class ModuleWidget implements Element, Drawable {
     }
 
     @SuppressWarnings("unchecked")
-    private SettingWidget<?> createSettingWidget(Setting<?> setting, int x, int y, int width) {
+    private SettingWidget<?> createSettingWidget(Setting<?> setting, int x, int y) {
         SettingWidgetFactory<?> factory = SETTING_WIDGET_FACTORIES.get(setting.getClass());
         if (factory != null) {
-            return ((SettingWidgetFactory<Setting<?>>) factory).create(setting, x, y, width);
+            return ((SettingWidgetFactory<Setting<?>>) factory).create(setting, x, y);
         }
         return null;
     }
@@ -135,7 +136,7 @@ public class ModuleWidget implements Element, Drawable {
 
         // Render background based on module state
         if (module.isActive()) {
-            int backgroundColor = interpolateColor(
+            int backgroundColor = ColorHelper.interpolateColor(
                     UIConstants.ACTIVE_COLOR_BASE,
                     UIConstants.ACTIVE_COLOR_HOVER,
                     hoverProgress);
@@ -149,7 +150,7 @@ public class ModuleWidget implements Element, Drawable {
         // Render module name
         int textColor = module.isActive()
                 ? UIConstants.TEXT_COLOR_ACTIVE
-                : interpolateColor(UIConstants.TEXT_COLOR_INACTIVE, UIConstants.TEXT_COLOR_ACTIVE, hoverProgress);
+                : ColorHelper.interpolateColor(UIConstants.TEXT_COLOR_INACTIVE, UIConstants.TEXT_COLOR_ACTIVE, hoverProgress);
 
         int textX = x + width / 2 - TEXT_RENDERER.getWidth(displayName) / 2;
         int textY = y + (height - TEXT_RENDERER.fontHeight) / 2 + 1;
@@ -176,25 +177,6 @@ public class ModuleWidget implements Element, Drawable {
             tooltipWidget.refreshPos(x, y, 108, 8, context.getScaledWindowWidth(), context.getScaledWindowHeight());
             tooltipWidget.render(context, mouseX, mouseY, delta);
         }
-    }
-
-    private int interpolateColor(int color1, int color2, float progress) {
-        int a1 = (color1 >> 24) & 0xFF;
-        int r1 = (color1 >> 16) & 0xFF;
-        int g1 = (color1 >> 8) & 0xFF;
-        int b1 = color1 & 0xFF;
-
-        int a2 = (color2 >> 24) & 0xFF;
-        int r2 = (color2 >> 16) & 0xFF;
-        int g2 = (color2 >> 8) & 0xFF;
-        int b2 = color2 & 0xFF;
-
-        int a = MathHelper.lerp(progress, a1, a2);
-        int r = MathHelper.lerp(progress, r1, r2);
-        int g = MathHelper.lerp(progress, g1, g2);
-        int b = MathHelper.lerp(progress, b1, b2);
-
-        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     @Override
@@ -303,7 +285,7 @@ public class ModuleWidget implements Element, Drawable {
     @FunctionalInterface
     private interface SettingWidgetFactory<T extends Setting<?>> {
 
-        SettingWidget<?> create(T setting, int x, int y, int width);
+        SettingWidget<?> create(T setting, int x, int y);
 
     }
 

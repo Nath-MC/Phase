@@ -35,8 +35,8 @@ public final class Renderer {
     private static final Renderer INSTANCE = new Renderer();
     private final List<Renderable> renderables = new ArrayList<>();
 
-    private Renderer() {
-    }
+    private final List<AbstractRenderable> renderables = new CopyOnWriteArrayList<>();
+
     private Renderer() {}
 
     public static Renderer getInstance() {

@@ -28,14 +28,12 @@ public class ModuleScreen extends Screen {
 
     private static final File SAVED_STATES_FILE = ConfigManager.getConfigFile("gui/states");
 
-    private static final int PANEL_WIDTH = 100;
     private static final int PANEL_PADDING = 16;
-
-    private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
 
     private static final Modules modules = Modules.getInstance();
     private static final Categories categories = Categories.getInstance();
 
+    private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
     private final List<ContainerPanelWidget> panels = new ArrayList<>();
 
     private final @Nullable Screen parent;
@@ -71,13 +69,13 @@ public class ModuleScreen extends Screen {
     }
 
     private void createDefaultPanelLayout(int categoryCount) {
-        int totalWidth = (categoryCount * PANEL_WIDTH) + Math.max(0, categoryCount - 1) * PANEL_PADDING; // calculate total panels width
+        int totalWidth = (categoryCount * ContainerPanelWidget.WIDTH) + Math.max(0, categoryCount - 1) * PANEL_PADDING; // calculate total panels width
         int startX = (this.width - totalWidth) / 2;
         int startY = this.height / 10;
 
         int index = 0;
         for (Category category : categories.getCategories()) {
-            int x = startX + (index * PANEL_WIDTH) + (index * PANEL_PADDING);
+            int x = startX + (index * ContainerPanelWidget.WIDTH) + (index * PANEL_PADDING);
             createAndPopulatePanel(category, x, startY, false);
             index++;
         }
@@ -93,7 +91,7 @@ public class ModuleScreen extends Screen {
                 int x = calculateScaledCoordinate(state.x(), savedWidth, this.width);
                 int y = calculateScaledCoordinate(state.y(), savedHeight, this.height);
 
-                x = Math.clamp(x, 0, this.width - PANEL_WIDTH);
+                x = Math.clamp(x, 0, this.width - ContainerPanelWidget.WIDTH);
                 y = Math.clamp(y, 0, this.height - 15);
 
                 createAndPopulatePanel(category, x, y, state.collapsed());

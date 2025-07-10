@@ -9,34 +9,29 @@ import net.minecraft.client.gui.Element;
 
 public abstract class SettingWidget<T> implements Element, Drawable {
 
-    protected static final TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+    protected static final MinecraftClient client = MinecraftClient.getInstance();
+    protected static final TextRenderer textRenderer = client.textRenderer;
+
+    protected static final int DEFAULT_WIDTH = 100;
     protected static final int DEFAULT_HEIGHT = 20;
 
     protected final Setting<T> setting;
     protected final int width;
     protected final int height;
+
     protected int x;
     protected int y;
-    protected boolean hovered;
 
-    public SettingWidget(Setting<T> setting, int x, int y, int width) {
+    public SettingWidget(Setting<T> setting, int x, int y) {
         this.setting = setting;
         this.x = x;
         this.y = y;
-        this.width = width;
+        this.width = DEFAULT_WIDTH;
         this.height = DEFAULT_HEIGHT;
     }
 
     public int getHeight() {
         return height;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public boolean isHovered() {
-        return hovered;
     }
 
     @Override

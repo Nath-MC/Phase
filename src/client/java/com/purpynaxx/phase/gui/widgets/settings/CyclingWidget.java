@@ -10,8 +10,8 @@ import java.awt.*;
 public class CyclingWidget extends SettingWidget<Enum<?>> {
 
     @SuppressWarnings("unchecked")
-    public CyclingWidget(CyclingSetting<?> setting, int x, int y, int width) {
-        super((Setting<Enum<?>>) setting, x, y, width);
+    public CyclingWidget(CyclingSetting<?> setting, int x, int y) {
+        super((Setting<Enum<?>>) setting, x, y);
     }
 
     @Override

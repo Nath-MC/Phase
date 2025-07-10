@@ -9,23 +9,22 @@ import net.minecraft.client.gui.Drawable;
 import net.minecraft.client.gui.Element;
 
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ContainerPanelWidget implements Drawable, Element {
+
+    public static final int WIDTH = 100;
 
     private static final int dragThresholdSquared = 9;
     private static final int titleBarHeight = 15;
 
     private static final TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
 
-    private static final int backgroundColor = new Color(20, 20, 20, 200).getRGB();
-    private static final int titleBarColor = new Color(40, 40, 40, 255).getRGB();
-    private static final int borderColor = new Color(80, 80, 80, 255).getRGB();
-    private static final int titleColor = Color.WHITE.getRGB();
-
-    private static final int width = 100;
+    private static final int BG_COLOR = 0xC8141414; // new Color(20, 20, 20, 200).getRGB()
+    private static final int TITLE_BG_COLOR = 0xFF282828;   // new Color(40, 40, 40, 255).getRGB()
+    private static final int TITLE_TEXT_COLOR = 0xFFFFFFFF;      // new Color(255, 255, 255, 255).getRGB()
+    private static final int BORDER_COLOR = 0xFF505050;     // new Color(80, 80, 80, 255).getRGB()
 
     private final String title;
 
@@ -35,6 +34,7 @@ public class ContainerPanelWidget implements Drawable, Element {
 
     private final int screenWidth;
     private final int screenHeight;
+
     private int height;
 
     private int x;
@@ -42,11 +42,13 @@ public class ContainerPanelWidget implements Drawable, Element {
 
     private boolean dragging;
     private boolean potentialDrag;
-    private double dragOffsetX;
-    private double dragOffsetY;
 
     private boolean collapsed;
     private boolean hovered;
+
+    private double dragOffsetX;
+    private double dragOffsetY;
+
     private double lastClickX;
     private double lastClickY;
 
@@ -75,7 +77,7 @@ public class ContainerPanelWidget implements Drawable, Element {
             moduleY = lastModule.getY() + lastModule.getFinalHeight();
         }
 
-        ModuleWidget moduleWidget = new ModuleWidget(module, moduleX, moduleY, width, moduleHeight, this);
+        ModuleWidget moduleWidget = new ModuleWidget(module, moduleX, moduleY, WIDTH, moduleHeight, this);
 
         // Add listener for module collapse/expand events
         moduleWidget.setCollapseListener(this::updatePanelLayout);
@@ -144,17 +146,17 @@ public class ContainerPanelWidget implements Drawable, Element {
 
     public void render(DrawContext context, int mouseX, int mouseY, float delta, boolean renderTooltips) {
         // Draw title bar
-        context.fill(x, y, x + width, y + titleBarHeight, titleBarColor);
-        context.drawText(textRenderer, title, x + 4, y + (titleBarHeight - textRenderer.fontHeight) / 2 + 1, titleColor, false);
+        context.fill(x, y, x + WIDTH, y + titleBarHeight, TITLE_BG_COLOR);
+        context.drawText(textRenderer, title, x + 4, y + (titleBarHeight - textRenderer.fontHeight) / 2 + 1, TITLE_TEXT_COLOR, false);
 
         if (this.isCollapsed()) {
-            context.drawBorder(x - 1, y - 1, width + 2, titleBarHeight + 2, borderColor);
+            context.drawBorder(x - 1, y - 1, WIDTH + 2, titleBarHeight + 2, BORDER_COLOR);
             return;
         }
 
         // Draw panel background
-        context.fill(x, y + titleBarHeight, x + width, y + height, backgroundColor);
-        context.drawBorder(x - 1, y - 1, width + 2, height + 2, borderColor);
+        context.fill(x, y + titleBarHeight, x + WIDTH, y + height, BG_COLOR);
+        context.drawBorder(x - 1, y - 1, WIDTH + 2, height + 2, BORDER_COLOR);
 
         // Reset hover state for all modules
         for (ModuleWidget moduleWidget : children) {
@@ -261,7 +263,7 @@ public class ContainerPanelWidget implements Drawable, Element {
         int x = (int) (mouseX - this.dragOffsetX);
         int y = (int) (mouseY - this.dragOffsetY);
 
-        int clampedX = Math.clamp(x, 0, screenWidth - width);
+        int clampedX = Math.clamp(x, 0, screenWidth - WIDTH);
         int clampedY = Math.clamp(y, 0, screenHeight - titleBarHeight);
 
         this.setX(clampedX);
@@ -296,7 +298,7 @@ public class ContainerPanelWidget implements Drawable, Element {
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
         int panelHeight = this.isCollapsed() ? titleBarHeight : this.height;
-        return mouseX >= this.x && mouseX <= this.x + width && mouseY >= this.y && mouseY <= this.y + panelHeight;
+        return mouseX >= this.x && mouseX <= this.x + WIDTH && mouseY >= this.y && mouseY <= this.y + panelHeight;
     }
 
     public boolean isDragging() {

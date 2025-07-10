@@ -8,8 +8,7 @@ public abstract class Setting<T> {
     private final String id;
     private final Text name;
     private final Text description;
-    private @NotNull
-    final T defaultValue;
+    private final @NotNull T defaultValue;
     private @NotNull T value;
 
     public Setting(String id, Text name, Text description, @NotNull T defaultValue) {
@@ -36,20 +35,12 @@ public abstract class Setting<T> {
         return description;
     }
 
-    public @NotNull T getDefaultValue() {
-        return defaultValue;
-    }
-
     public @NotNull T getValue() {
         return value;
     }
 
     public void setValue(T value) {
         this.value = value == null ? this.defaultValue : value;
-    }
-
-    public void resetValue() {
-        this.value = this.defaultValue;
     }
 
 }
