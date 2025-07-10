@@ -15,11 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
-public class ModuleConfigManager {
+public final class ModuleConfigManager {
 
     private static final Logger logger = ConfigManager.logger;
     private static final String modules_directory = "modules";
     private static final Modules modules = Modules.getInstance();
+
+    private ModuleConfigManager() {}
 
     public static void shutdown(MinecraftClient ignored) {
         Executors.newVirtualThreadPerTaskExecutor().submit(ModuleConfigManager::saveAllModules);

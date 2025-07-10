@@ -18,12 +18,13 @@ import java.util.function.Supplier;
 /**
  * ConfigManager is responsible for managing configuration files.
  * It provides methods to save and load data in NBT format, ensuring the correct directory structure.
- * The data is wrapped in a root NbtCompound with a specific key for consistency.
  */
 public final class ConfigManager {
 
     static final Logger logger = LoggerFactory.getLogger("Phase/ConfigManager");
     private static final String root = "";
+
+    private ConfigManager() {}
 
     /**
      * Resolves a config file path within the default mod config directory.

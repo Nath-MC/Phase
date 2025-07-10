@@ -73,12 +73,17 @@ public class ModuleScreen extends Screen {
         int startX = (this.width - totalWidth) / 2;
         int startY = this.height / 10;
 
-        int index = 0;
-        for (Category category : categories.getCategories()) {
-            int x = startX + (index * ContainerPanelWidget.WIDTH) + (index * PANEL_PADDING);
-            createAndPopulatePanel(category, x, startY, false);
-            index++;
-        }
+        final int[] index = {0};
+        categories.getCategories().stream().sorted(Comparator.comparing(Category::getFriendlyName, String::compareToIgnoreCase)).forEach(category -> {
+            int x = startX + (index[0] * (ContainerPanelWidget.WIDTH + PANEL_PADDING));
+
+            try {
+                createAndPopulatePanel(category, x, startY, false);
+            } catch (Exception e) {
+                LOGGER.error("Error creating default panel for category '{}'", category.getFriendlyName(), e);
+            }
+            index[0]++;
+        });
     }
 
     private void restoreSavedPanelLayout(List<PanelState> savedStates) {
