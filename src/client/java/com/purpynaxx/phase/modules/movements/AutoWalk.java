@@ -9,8 +9,10 @@ import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.ButtonSetting;
 import com.purpynaxx.phase.settings.PositionInputSetting;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.DoorBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
@@ -55,6 +57,16 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
         ));
     }
 
+    private static boolean isPassable(BlockState state) {
+        return state.getCollisionShape(client.world, BlockPos.ORIGIN).isEmpty()
+                && IsNotFluid(state);
+    }
+
+    private static boolean IsNotFluid(BlockState state) {
+        return !state.getFluidState().isIn(FluidTags.WATER)
+                && !state.getFluidState().isIn(FluidTags.LAVA);
+    }
+
     @Override
     public void onChunkLoad(ClientWorld world, WorldChunk chunk) {
         onWorldChange();
@@ -63,6 +75,7 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
     private void onStart() {
         BlockPos userDefinedGoal = goalSetting.getValue();
         setGoal(userDefinedGoal);
+        this.setActive(true);
     }
 
     public void setGoal(BlockPos goal) {
@@ -83,26 +96,40 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
             currentPath.removeFirst();
             if (currentPath.isEmpty()) {
                 // We reached the goal !
-                onEnd();
+                onEnd(true);
                 return;
             }
             nextNode = currentPath.getFirst();
             nextPos = nextNode.pos;
         }
 
-        handleMovement(client, nextPos);
+        handleMovement(nextPos);
 
         for (PathNode node : currentPath) {
             renderer.addRenderable(new FaceOverlay(node.pos.down(), Direction.UP, new Color(0, 0, 255, 100), true, 2, true));
         }
     }
 
-    private void onEnd() {
-        clearPath();
-        client.player.sendMessage(Text.translatable("modules.movements.autowalk.goal_reached").formatted(Formatting.GREEN), true);
+    @Override
+    protected void onActivate() {
+        if (goalSetting.isDefault()) this.toggle();
     }
 
-    private void handleMovement(MinecraftClient client, BlockPos targetPos) {
+    private void onEnd(boolean success) {
+        clearPath();
+        goalSetting.reset();
+        goal = null;
+
+        if (success) {
+            client.player.sendMessage(Text.translatable("modules.movements.autowalk.goal_reached").formatted(Formatting.GREEN), true);
+        } else {
+            client.player.sendMessage(Text.translatable("modules.movements.autowalk.goal_failed").formatted(Formatting.RED), true);
+        }
+
+        this.setActive(false);
+    }
+
+    private void handleMovement(BlockPos targetPos) {
 
         Vec3d position = Vec3d.ofCenter(targetPos);
         Vec3d eyePos = client.player.getEyePos();
@@ -146,6 +173,10 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
                 .thenAccept(path -> {
                     this.currentPath = path;
                     isPathfinding.set(false);
+
+                    if (currentPath == null) {
+                        onEnd(false);
+                    }
                 });
     }
 
@@ -201,11 +232,10 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
                 if (openSet.stream().noneMatch(n -> n.pos.equals(neighborPos) && n.gCost < tentativeGCost)) {
                     openSet.removeIf(n -> n.pos.equals(neighborPos)); // Remove old, more expensive path to neighbor
                     openSet.add(neighborNode);
-                    renderer.addRenderable(new FaceOverlay(neighborPos, Direction.DOWN, new Color(0, 255, 0, 100), false, -1, true));
                 }
             }
         }
-        // If the open set becomes empty, and we haven't reached the goal, no path exists.
+        // If the open set becomes empty, and we haven't reached the goal, no path was established.
         return null;
     }
 
@@ -314,18 +344,28 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
     }
 
     private boolean isWalkable(ClientWorld world, BlockPos pos) {
-        return isPassable(world.getBlockState(pos))
-                && isPassable(world.getBlockState(pos.up()))
-                && !isPassable(world.getBlockState(pos.down()));
-    }
+        BlockState supportingBlock = world.getBlockState(pos.down());
+        if (isPassable(supportingBlock) && !IsNotFluid(supportingBlock)) {
+            return false;
+        }
 
-    private boolean isPassable(BlockState state) {
-        return state.getCollisionShape(client.world, BlockPos.ORIGIN).isEmpty();
+        BlockState footLevelBlock = world.getBlockState(pos);
+        if (footLevelBlock.getBlock() instanceof DoorBlock) {
+            if (!footLevelBlock.get(DoorBlock.OPEN)) {
+                return false;
+            }
+        } else if (!isPassable(footLevelBlock)) {
+            return false;
+        }
+
+        BlockState headLevelBlock = world.getBlockState(pos.up());
+        if (headLevelBlock.getBlock() instanceof DoorBlock) {
+            return headLevelBlock.get(DoorBlock.OPEN);
+        } else return isPassable(headLevelBlock);
     }
 
     @Override
     public void onDeactivate() {
-        super.onDeactivate();
         clearPath();
         renderer.removeRenderablesIf(Renderer::isDebug);
     }
@@ -337,11 +377,10 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
         if (client.options.forwardKey.isPressed()) {
             client.options.forwardKey.setPressed(false);
         }
-        renderer.removeRenderablesIf(Renderer::isDebug);
     }
 
     private boolean isPlayerCloseTo(Vec3d playerPos, BlockPos targetPos) {
-        return playerPos.isInRange(Vec3d.ofCenter(targetPos), 1.2);
+        return playerPos.isInRange(Vec3d.ofCenter(targetPos), 0.5);
     }
 
     // --- A* Cost Functions ---

@@ -14,6 +14,7 @@
   "modules.movements.autowalk.description": "Automatically travels to a given coordinate",
   "modules.movements.autowalk.goal.description": "The coordinate to travel to",
   "modules.movements.autowalk.goal.name": "Goal",
+  "modules.movements.autowalk.goal_failed": "Could not reach the goal",
   "modules.movements.autowalk.goal_reached": "Goal reached !",
   "modules.movements.nofall.description": "Cancel fall damage",
   "modules.movements.nofall.failed_to_pickup": "Failed to pick up water/snow, sorry !",

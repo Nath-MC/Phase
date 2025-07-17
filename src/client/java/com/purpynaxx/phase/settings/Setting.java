@@ -47,4 +47,8 @@ public abstract class Setting<T> {
         return value.equals(defaultValue);
     }
 
+    public void reset() {
+        this.value = this.defaultValue;
+    }
+
 }
