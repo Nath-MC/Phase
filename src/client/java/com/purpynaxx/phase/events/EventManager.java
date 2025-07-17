@@ -23,7 +23,10 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.*;
+import net.minecraft.client.gui.screen.DownloadingTerrainScreen;
+import net.minecraft.client.gui.screen.MessageScreen;
+import net.minecraft.client.gui.screen.ProgressScreen;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.world.LevelLoadingScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.option.KeyBinding;
@@ -187,9 +190,9 @@ public class EventManager {
 
         // Register screen events
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof TitleScreen titleScreen && ((TitleScreenMixin) titleScreen).getDoBackgroundFade()
+            if (screen instanceof TitleScreenMixin titleScreen && titleScreen.getDoBackgroundFade()
                     && modules.isModuleActive(GUI.class)) {
-                ((TitleScreenMixin) titleScreen).setDoBackgroundFade(false);
+                titleScreen.setDoBackgroundFade(false);
             }
 
             if (ignoredScreens.contains(screen.getClass())) return;
