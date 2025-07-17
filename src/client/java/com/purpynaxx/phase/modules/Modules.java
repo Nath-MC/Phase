@@ -8,7 +8,6 @@ import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
@@ -35,7 +34,7 @@ public class Modules {
         return INSTANCE;
     }
 
-    public boolean init() {
+    public void init() {
         if (this.registered)
             throw new IllegalStateException("Modules have already been instanced");
 
@@ -51,11 +50,9 @@ public class Modules {
                     Constructor<? extends Module> constructor = moduleClass.getDeclaredConstructor();
                     constructor.setAccessible(true);
                     Module module = constructor.newInstance();
-                    this.add(moduleClass, module);
-                } catch (NoSuchMethodException e) {
-                    this.onFail(moduleClass.getSimpleName(), new Exception("No default constructor found", e));
-                } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
-                    this.onFail(moduleClass.getSimpleName(), e);
+                    add(moduleClass, module);
+                } catch (Exception e) {
+                    onFail(moduleClass.getSimpleName(), e);
                 }
             }
 
@@ -75,7 +72,6 @@ public class Modules {
         } else LOGGER.error("No module classes found.");
 
         this.registered = true;
-        return this.failedInstantiation == 0;
     }
 
     private void add(Class<? extends Module> clazz, Module m) {
@@ -105,7 +101,7 @@ public class Modules {
         return false;
     }
 
-    public <T extends Module> void toggleModuleActive(Class<T> clazz) {
+    public <T extends Module> void toggleModule(Class<T> clazz) {
         if (clazz == null) return;
         T module = this.getModule(clazz);
         if (module != null) module.toggle();

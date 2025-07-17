@@ -17,7 +17,6 @@ import com.purpynaxx.phase.modules.visuals.GUI;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -29,9 +28,6 @@ import net.minecraft.client.gui.screen.ProgressScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.world.LevelLoadingScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +35,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
+import static com.purpynaxx.phase.Phase.keyBinding;
 
 public class EventManager {
 
@@ -179,15 +176,6 @@ public class EventManager {
 
     private void registerGlobalEvents() {
 
-        // Register menu key binding
-        KeyBinding keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.phase.open_menu",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_RIGHT_SHIFT,
-                "key.categories.phase"
-        ));
-
-
         // Register screen events
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreenMixin titleScreen && titleScreen.getDoBackgroundFade()
@@ -201,7 +189,7 @@ public class EventManager {
                 if (screen.getFocused() instanceof TextFieldWidget || screen.getFocused() instanceof PositionInputWidget)
                     return;
                 if (keyBinding.matchesKey(key, scancode)) {
-                    modules.toggleModuleActive(GUI.class);
+                    modules.toggleModule(GUI.class);
                 }
             });
         });
@@ -211,7 +199,7 @@ public class EventManager {
 
             // Register tick event for key binding
             if (keyBinding.wasPressed()) {
-                modules.toggleModuleActive(GUI.class);
+                modules.toggleModule(GUI.class);
             }
 
             // Handle renderer tick
