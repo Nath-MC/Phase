@@ -1,6 +1,7 @@
 package com.purpynaxx.phase.modules.visuals;
 
 import com.purpynaxx.phase.events.interfaces.world.WorldRender;
+import com.purpynaxx.phase.helpers.render.DrawMode;
 import com.purpynaxx.phase.modules.Module;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.entity.Entity;
@@ -12,7 +13,7 @@ import java.awt.*;
 public class ESP extends Module implements WorldRender.END {
 
     private static final Text description = Text.translatable("modules.visuals.esp.description");
-    private static final Color color = new Color(255, 0, 0, 50);
+    private static final Color color = new Color(255, 0, 0, 150);
 
     private ESP() {
         super(description);
@@ -31,7 +32,7 @@ public class ESP extends Module implements WorldRender.END {
 
             if (client.player.isSpectator() && client.getCameraEntity() == player) continue;
 
-            renderer.drawBoxForEntity(context, entity, color, true);
+            renderer.drawBoxForEntity(context, entity, color, DrawMode.BOTH, false);
         }
     }
 

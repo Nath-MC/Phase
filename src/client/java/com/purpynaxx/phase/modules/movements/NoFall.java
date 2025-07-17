@@ -3,10 +3,10 @@ package com.purpynaxx.phase.modules.movements;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.helpers.entity.Player;
-import com.purpynaxx.phase.helpers.render.BlockOverlay;
+import com.purpynaxx.phase.helpers.render.DrawMode;
+import com.purpynaxx.phase.helpers.render.impl.FaceOverlay;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.Module;
-import com.purpynaxx.phase.modules.miscellaneous.Debug;
 import com.purpynaxx.phase.settings.CyclingSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.block.BlockState;
@@ -30,6 +30,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
@@ -248,10 +249,10 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
             pickupTimer = 3;
             waterPos = target;
 
-            if (modules.isModuleActive(Debug.class) && result != null) {
+            if (result != null) {
                 Color color = new Color(0, 0, 255, 100);
-                BlockOverlay blockOverlay = new BlockOverlay(result.up(), color, true, 200, true);
-                renderer.addRenderable(blockOverlay);
+                FaceOverlay faceOverlay = new FaceOverlay(result, Direction.UP, color, DrawMode.FILL, 200, true, true);
+                renderer.addRenderable(faceOverlay);
             }
 
         } else {

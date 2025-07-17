@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.helpers.render;
 
+import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -11,7 +12,8 @@ import net.minecraft.client.gl.UniformType;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.*;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
@@ -112,9 +114,10 @@ public final class Renderer {
      * @param renderContext The current render context
      * @param entity        The Entity whose bounding box will be rendered as a Box.
      * @param color         The color for the box. The alpha component of the color isn't used.
-     * @param fill          Whether to fill the box with the color or just draw the outline.
+     * @param mode          The mode for drawing the box (outline, fill, or both).
+     * @param depthTest     Whether to perform depth testing when rendering the box.
      */
-    public void drawBoxForEntity(WorldRenderContext renderContext, Entity entity, Color color, boolean fill) {
+    public void drawBoxForEntity(WorldRenderContext renderContext, Entity entity, Color color, DrawMode mode, boolean depthTest) {
         RenderTickCounter renderTickCounter = renderContext.tickCounter();
         float progress = renderTickCounter.getTickProgress(true);
 
@@ -124,19 +127,7 @@ public final class Renderer {
 
         Box box = entity.getBoundingBox().expand(0.1D).offset(x, y, z);
 
-        drawBox(renderContext, box, color, fill);
-    }
-
-    /**
-     * Draws a box in the world at the specified BlockPos with the given color.
-     *
-     * @param renderContext The current render context
-     * @param blockPos      The world-space BlockPos to be rendered as a Box.
-     * @param color         The color for the box. The alpha component of the color isn't used if {@code fill} is false.
-     * @param fill          Whether to fill the box with the color or just draw the outline.
-     */
-    public void drawBox(WorldRenderContext renderContext, BlockPos blockPos, Color color, boolean fill) {
-        drawBox(renderContext, new Box(blockPos), color, fill);
+        drawBox(renderContext, box, color, mode, depthTest);
     }
 
     /**
@@ -145,13 +136,12 @@ public final class Renderer {
      * @param renderContext The current render context
      * @param box           The world-space Box to be rendered.
      * @param color         The color for the box. The alpha component of the color isn't used if {@code fill} is false.
-     * @param fill          Whether to fill the box with the color or just draw the outline.
+     * @param mode          The mode for drawing the box (outline, fill, or both).
+     * @param depthTest     Whether to perform depth testing when rendering the box.
      */
-    public void drawBox(WorldRenderContext renderContext, Box box, Color color, boolean fill) {
+    public void drawBox(WorldRenderContext renderContext, Box box, Color color, DrawMode mode, boolean depthTest) {
         MatrixStack matrixStack = renderContext.matrixStack();
         Matrix4f matrix = matrixStack.peek().getPositionMatrix();
-
-        VertexConsumer linesVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_LINES_LAYER);
 
         box = box.offset(renderContext.camera().getPos().negate());
 
@@ -163,28 +153,34 @@ public final class Renderer {
         float maxY = (float) box.maxY;
         float maxZ = (float) box.maxZ;
 
-        // Bottom face outline
-        line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
-        line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
-        line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, minX, minY, maxZ);
-        line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, minY, minZ);
+        if (mode.isOutline()) {
+            RenderLayer layer = depthTest ? Layers.LINES_LAYER : Layers.OVERLAY_LINES_LAYER;
+            VertexConsumer linesVertexConsumer = renderContext.consumers().getBuffer(layer);
 
-        // Top face outline
-        line(matrix, linesVertexConsumer, color, minX, maxY, minZ, maxX, maxY, minZ);
-        line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, maxY, maxZ);
-        line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
-        line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
+            // Bottom face outline
+            line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
+            line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
+            line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, minX, minY, maxZ);
+            line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, minY, minZ);
 
-        // Vertical edges outline
-        line(matrix, linesVertexConsumer, color, minX, minY, minZ, minX, maxY, minZ);
-        line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, maxY, minZ);
-        line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
-        line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, maxY, maxZ);
+            // Top face outline
+            line(matrix, linesVertexConsumer, color, minX, maxY, minZ, maxX, maxY, minZ);
+            line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, maxY, maxZ);
+            line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
+            line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
 
-        ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+            // Vertical edges outline
+            line(matrix, linesVertexConsumer, color, minX, minY, minZ, minX, maxY, minZ);
+            line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, maxY, minZ);
+            line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
+            line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, maxY, maxZ);
 
-        if (fill) {
-            VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
+            ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
+        }
+
+        if (mode.isFill()) {
+            RenderLayer layer = depthTest ? Layers.QUADS_LAYER : Layers.OVERLAY_QUADS_LAYER;
+            VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(layer);
 
             // Down face (-Y)
             quad(matrix, quadsVertexConsumer, color,
@@ -235,149 +231,6 @@ public final class Renderer {
             );
 
             ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-        }
-    }
-
-    /**
-     * Draws a face of a block at the specified BlockPos with the given color.
-     *
-     * @param renderContext The current render context
-     * @param blockPos      The world-space BlockPos where the face will be rendered.
-     * @param direction     The direction of the face to be rendered.
-     * @param color         The color for the face. The alpha component of the color isn't used if {@code fill} is false.
-     * @param fill          Whether to fill the face with the color or just draw the outline.
-     */
-    public void drawFace(WorldRenderContext renderContext, BlockPos blockPos, Direction direction, Color color, boolean fill) {
-        MatrixStack matrixStack = renderContext.matrixStack();
-        Matrix4f matrix = matrixStack.peek().getPositionMatrix();
-
-        Vec3d offset = renderContext.camera().getPos().negate();
-
-        float minX = blockPos.getX() + (float) offset.x;
-        float minY = blockPos.getY() + (float) offset.y;
-        float minZ = blockPos.getZ() + (float) offset.z;
-
-        float maxX = minX + 1.0F;
-        float maxY = minY + 1.0F;
-        float maxZ = minZ + 1.0F;
-
-        VertexConsumer linesVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_LINES_LAYER);
-
-        switch (direction) {
-            case DOWN -> {
-                line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
-                line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
-                line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, minX, minY, maxZ);
-                line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, minY, minZ);
-
-                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-
-                if (fill) {
-                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
-                    quad(matrix, quadsVertexConsumer, color,
-                            maxX, minY, minZ,
-                            maxX, minY, maxZ,
-                            minX, minY, maxZ,
-                            minX, minY, minZ
-                    );
-                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-                }
-            }
-            case UP -> {
-                line(matrix, linesVertexConsumer, color, minX, maxY, minZ, maxX, maxY, minZ);
-                line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, maxY, maxZ);
-                line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
-                line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
-
-                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-
-                if (fill) {
-                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
-                    quad(matrix, quadsVertexConsumer, color,
-                            minX, maxY, maxZ,
-                            maxX, maxY, maxZ,
-                            maxX, maxY, minZ,
-                            minX, maxY, minZ
-                    );
-                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-                }
-            }
-            case NORTH -> {
-                line(matrix, linesVertexConsumer, color, minX, minY, minZ, maxX, minY, minZ);
-                line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, maxY, minZ);
-                line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, minX, maxY, minZ);
-                line(matrix, linesVertexConsumer, color, minX, maxY, minZ, minX, minY, minZ);
-
-                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-
-                if (fill) {
-                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
-                    quad(matrix, quadsVertexConsumer, color,
-                            minX, maxY, minZ,
-                            maxX, maxY, minZ,
-                            maxX, minY, minZ,
-                            minX, minY, minZ
-                    );
-                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-                }
-            }
-            case SOUTH -> {
-                line(matrix, linesVertexConsumer, color, minX, minY, maxZ, maxX, minY, maxZ);
-                line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
-                line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, minX, maxY, maxZ);
-                line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, minY, maxZ);
-
-                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-
-                if (fill) {
-                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
-                    quad(matrix, quadsVertexConsumer, color,
-                            minX, minY, maxZ,
-                            maxX, minY, maxZ,
-                            maxX, maxY, maxZ,
-                            minX, maxY, maxZ
-                    );
-                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-                }
-            }
-            case WEST -> {
-                line(matrix, linesVertexConsumer, color, minX, minY, minZ, minX, minY, maxZ);
-                line(matrix, linesVertexConsumer, color, minX, minY, maxZ, minX, maxY, maxZ);
-                line(matrix, linesVertexConsumer, color, minX, maxY, maxZ, minX, maxY, minZ);
-                line(matrix, linesVertexConsumer, color, minX, maxY, minZ, minX, minY, minZ);
-
-                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-
-                if (fill) {
-                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
-                    quad(matrix, quadsVertexConsumer, color,
-                            minX, minY, maxZ,
-                            minX, maxY, maxZ,
-                            minX, maxY, minZ,
-                            minX, minY, minZ
-                    );
-                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-                }
-            }
-            case EAST -> {
-                line(matrix, linesVertexConsumer, color, maxX, minY, minZ, maxX, minY, maxZ);
-                line(matrix, linesVertexConsumer, color, maxX, minY, maxZ, maxX, maxY, maxZ);
-                line(matrix, linesVertexConsumer, color, maxX, maxY, maxZ, maxX, maxY, minZ);
-                line(matrix, linesVertexConsumer, color, maxX, maxY, minZ, maxX, minY, minZ);
-
-                ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-
-                if (fill) {
-                    VertexConsumer quadsVertexConsumer = renderContext.consumers().getBuffer(Layers.OVERLAY_QUADS_LAYER);
-                    quad(matrix, quadsVertexConsumer, color,
-                            maxX, minY, minZ,
-                            maxX, maxY, minZ,
-                            maxX, maxY, maxZ,
-                            maxX, minY, maxZ
-                    );
-                    ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
-                }
-            }
         }
     }
 
@@ -437,9 +290,11 @@ public final class Renderer {
         int r = color.getRed();
         int g = color.getGreen();
         int b = color.getBlue();
+        int a = color.getAlpha();
 
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, 255);
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, 255);
+
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a);
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a);
     }
 
     private static class Layers {
@@ -472,6 +327,24 @@ public final class Renderer {
                         .build(false)
         );
 
+        private static final RenderPipeline LINES = RenderPipelines.register(
+                RenderPipeline.builder(RENDERTYPE_OVERLAY_LINES_SNIPPET)
+                        .withLocation("pipeline/lines")
+                        .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+                        .build()
+        );
+
+        private static final RenderLayer.MultiPhase LINES_LAYER = RenderLayer.MultiPhase.of(
+                "overlay_lines",
+                1536,
+                LINES,
+                RenderLayer.MultiPhaseParameters.builder()
+                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.empty()))
+                        .layering(VIEW_OFFSET_Z_LAYERING)
+                        .target(ITEM_ENTITY_TARGET)
+                        .build(false)
+        );
+
         private static final RenderPipeline.Snippet OVERLAY_QUADS_SNIPPET = RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -494,6 +367,25 @@ public final class Renderer {
                 false,
                 true,
                 OVERLAY_QUADS,
+                RenderLayer.MultiPhaseParameters.builder()
+                        .target(ITEM_ENTITY_TARGET)
+                        .layering(VIEW_OFFSET_Z_LAYERING)
+                        .build(false)
+        );
+
+        private static final RenderPipeline QUADS = RenderPipelines.register(
+                RenderPipeline.builder(OVERLAY_QUADS_SNIPPET)
+                        .withLocation("pipeline/debug_quads")
+                        .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+                        .build()
+        );
+
+        private static final RenderLayer.MultiPhase QUADS_LAYER = RenderLayer.of(
+                "overlay_quads",
+                1536,
+                false,
+                true,
+                QUADS,
                 RenderLayer.MultiPhaseParameters.builder()
                         .target(ITEM_ENTITY_TARGET)
                         .layering(VIEW_OFFSET_Z_LAYERING)

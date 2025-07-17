@@ -3,8 +3,9 @@ package com.purpynaxx.phase.modules.movements;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.world.WorldChunkEvent;
 import com.purpynaxx.phase.helpers.entity.Player;
-import com.purpynaxx.phase.helpers.render.FaceOverlay;
+import com.purpynaxx.phase.helpers.render.DrawMode;
 import com.purpynaxx.phase.helpers.render.Renderer;
+import com.purpynaxx.phase.helpers.render.impl.FaceOverlay;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.ButtonSetting;
 import com.purpynaxx.phase.settings.PositionInputSetting;
@@ -106,7 +107,8 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
         handleMovement(nextPos);
 
         for (PathNode node : currentPath) {
-            renderer.addRenderable(new FaceOverlay(node.pos.down(), Direction.UP, new Color(0, 0, 255, 100), true, 2, true));
+            FaceOverlay faceOverlay = new FaceOverlay(node.pos.down(), Direction.UP, new Color(0, 0, 255, 75), DrawMode.FILL, 2, true, true);
+            renderer.addRenderable(faceOverlay);
         }
     }
 
