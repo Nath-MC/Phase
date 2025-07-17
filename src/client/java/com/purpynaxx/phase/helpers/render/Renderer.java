@@ -22,8 +22,6 @@ import java.util.OptionalDouble;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
-import static net.minecraft.client.gl.RenderPipelines.MATRICES_COLOR_FOG_SNIPPET;
-import static net.minecraft.client.gl.RenderPipelines.POSITION_COLOR_SNIPPET;
 import static net.minecraft.client.render.RenderPhase.ITEM_ENTITY_TARGET;
 import static net.minecraft.client.render.RenderPhase.VIEW_OFFSET_Z_LAYERING;
 
@@ -446,19 +444,20 @@ public final class Renderer {
 
     private static class Layers {
 
-        private static final RenderPipeline.Snippet RENDERTYPE_OVERLAY_LINES_SNIPPET = RenderPipeline.builder(MATRICES_COLOR_FOG_SNIPPET)
+        private static final RenderPipeline.Snippet RENDERTYPE_OVERLAY_LINES_SNIPPET = RenderPipeline.builder()
+                .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withVertexShader("core/rendertype_lines")
                 .withFragmentShader("core/rendertype_lines")
-                .withUniform("LineWidth", UniformType.FLOAT)
-                .withUniform("ScreenSize", UniformType.VEC2)
+                .withBlend(BlendFunction.TRANSLUCENT)
                 .withCull(false)
+                .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                 .withVertexFormat(VertexFormats.POSITION_COLOR, VertexFormat.DrawMode.LINES)
                 .buildSnippet();
 
         private static final RenderPipeline OVERLAY_LINES = RenderPipelines.register(
                 RenderPipeline.builder(RENDERTYPE_OVERLAY_LINES_SNIPPET)
                         .withLocation("pipeline/lines")
-                        .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                         .build()
         );
 
@@ -467,16 +466,25 @@ public final class Renderer {
                 1536,
                 OVERLAY_LINES,
                 RenderLayer.MultiPhaseParameters.builder()
-                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.of(3.0D)))
+                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.empty()))
                         .layering(VIEW_OFFSET_Z_LAYERING)
                         .target(ITEM_ENTITY_TARGET)
                         .build(false)
         );
 
+        private static final RenderPipeline.Snippet OVERLAY_QUADS_SNIPPET = RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withVertexShader("core/position_color")
+                .withFragmentShader("core/position_color")
+                .withBlend(BlendFunction.TRANSLUCENT)
+                .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+                .withVertexFormat(VertexFormats.POSITION_COLOR, VertexFormat.DrawMode.QUADS)
+                .buildSnippet();
+
         private static final RenderPipeline OVERLAY_QUADS = RenderPipelines.register(
-                RenderPipeline.builder(POSITION_COLOR_SNIPPET)
+                RenderPipeline.builder(OVERLAY_QUADS_SNIPPET)
                         .withLocation("pipeline/debug_quads")
-                        .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                         .build()
         );
 
