@@ -51,7 +51,7 @@ public abstract class Setting<T> {
     }
 
     public boolean isDefault() {
-        return value.equals(defaultValueSupplier);
+        return value.equals(defaultValueSupplier.get());
     }
 
     public void reset() {
