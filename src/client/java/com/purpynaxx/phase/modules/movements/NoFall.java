@@ -8,7 +8,6 @@ import com.purpynaxx.phase.helpers.render.impl.FaceOverlay;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.CyclingSetting;
-import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LeavesBlock;
@@ -40,6 +39,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.awt.*;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTER {
@@ -59,7 +59,12 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
         suitableItems.add(Items.COBWEB);
     }
 
-    private final Setting<Mode> mode = registerSetting(new CyclingSetting<>("mode", Text.translatable("settings.screen.cycling.title"), Text.translatable("settings.screen.cycling.description", name), Mode.class));
+    private final CyclingSetting<Mode> mode = new CyclingSetting.Builder<Mode>()
+            .id("mode")
+            .name(Text.translatable("settings.screen.cycling.title"))
+            .description(Text.translatable("settings.screen.cycling.description", name))
+            .values(List.of(Mode.values()))
+            .build();
 
     private boolean placed = false;
 
@@ -83,6 +88,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
     private NoFall() {
         super(description);
+        registerSettings(mode);
     }
 
     private static Vec3d @NotNull [] getChecks() {

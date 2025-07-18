@@ -37,25 +37,26 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
     private final ExecutorService pathExecutor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean isPathfinding = new AtomicBoolean(false);
 
-    private final PositionInputSetting goalSetting = registerSetting(new PositionInputSetting(
-            "goal",
-            Text.translatable("modules.movements.autowalk.goal.name"),
-            Text.translatable("modules.movements.autowalk.goal.description"),
-            BlockPos.ORIGIN
-    ));
+    private final PositionInputSetting goalSetting = new PositionInputSetting.Builder()
+            .id("goal")
+            .name(Text.translatable("modules.movements.autowalk.goal.name"))
+            .description(Text.translatable("modules.movements.autowalk.goal.description"))
+            .defaultValue(() -> BlockPos.ORIGIN)
+            .build();
+
+    private final ButtonSetting startPathfindingButton = new ButtonSetting.Builder()
+            .id("start_pathfinding")
+            .name(Text.literal("Start Pathfinding"))
+            .description(Text.literal("Click to set the goal and start pathfinding"))
+            .defaultValue(this::onStart)
+            .build();
 
     private BlockPos goal;
     private @Nullable List<PathNode> currentPath;
 
     private AutoWalk() {
         super(description);
-
-        registerSetting(new ButtonSetting(
-                "start_pathfinding",
-                Text.literal("Start Pathfinding"),
-                Text.literal("Click to set the goal and start pathfinding"),
-                this::onStart
-        ));
+        registerSettings(goalSetting, startPathfindingButton);
     }
 
     private static boolean isPassable(BlockState state) {

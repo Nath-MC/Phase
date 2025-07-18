@@ -8,10 +8,7 @@ import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public abstract class Module {
 
@@ -25,7 +22,12 @@ public abstract class Module {
     protected final Logger logger;
 
     private final List<Setting<?>> settings = new ArrayList<>();
-    private final Setting<Boolean> active;
+    private final Setting<Boolean> active = new BooleanSetting.Builder()
+            .id("active")
+            .name(Text.translatable("settings.screen.active.title"))
+            .description(Text.translatable("settings.screen.active.description"))
+            .defaultValue(() -> false)
+            .build();
 
 
     protected Module(Text description) {
@@ -33,7 +35,7 @@ public abstract class Module {
         this.description = description;
         this.category = determineCategory();
         this.logger = LoggerFactory.getLogger("Phase/" + this.name);
-        this.active = registerSetting(new BooleanSetting("active", Text.translatable("settings.screen.active.title"), Text.translatable("settings.screen.active.description"), false));
+        registerSettings(active);
     }
 
     public String getName() {
@@ -53,9 +55,8 @@ public abstract class Module {
         return Category.valueOf(packageName.substring(packageName.lastIndexOf(".") + 1).toUpperCase(Locale.ROOT));
     }
 
-    protected <T extends Setting<?>> T registerSetting(T setting) {
-        settings.add(setting);
-        return setting;
+    protected void registerSettings(Setting<?>... settings) {
+        this.settings.addAll(Arrays.asList(settings));
     }
 
     public List<Setting<?>> getSettings() {
