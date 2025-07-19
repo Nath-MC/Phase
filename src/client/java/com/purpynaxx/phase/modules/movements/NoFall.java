@@ -29,7 +29,6 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
@@ -257,7 +256,13 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
             if (result != null) {
                 Color color = new Color(0, 0, 255, 100);
-                FaceOverlay faceOverlay = new FaceOverlay(result, Direction.UP, color, DrawMode.FILL, 200, true, true);
+                FaceOverlay faceOverlay = new FaceOverlay.Builder()
+                        .blockPos(result)
+                        .color(color)
+                        .drawMode(DrawMode.FILL)
+                        .ticksToLive(200)
+                        .debug(true)
+                        .build();
                 renderer.addRenderable(faceOverlay);
             }
 

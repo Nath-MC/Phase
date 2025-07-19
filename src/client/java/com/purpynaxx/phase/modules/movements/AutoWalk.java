@@ -108,7 +108,14 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
         handleMovement(nextPos);
 
         for (PathNode node : currentPath) {
-            FaceOverlay faceOverlay = new FaceOverlay(node.pos.down(), Direction.UP, new Color(0, 0, 255, 75), DrawMode.FILL, 2, true, true);
+            Color color = new Color(0, 0, 255, 75);
+            FaceOverlay faceOverlay = new FaceOverlay.Builder()
+                    .blockPos(node.pos.down())
+                    .color(color)
+                    .drawMode(DrawMode.FILL)
+                    .ticksToLive(2)
+                    .debug(true)
+                    .build();
             renderer.addRenderable(faceOverlay);
         }
     }

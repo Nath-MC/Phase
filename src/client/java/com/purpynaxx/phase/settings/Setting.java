@@ -91,7 +91,7 @@ public abstract class Setting<T> {
             } else if (name == null) {
                 throw new IllegalArgumentException("Setting name cannot be null");
             } else if (defaultValue == null) {
-                throw new IllegalArgumentException("Default value must be provided");
+                throw new IllegalArgumentException("A supplier for the default value must be provided");
             }
         }
 

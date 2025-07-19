@@ -3,10 +3,12 @@ package com.purpynaxx.phase.helpers.render;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 
 import java.awt.*;
+import java.util.Optional;
 
 public abstract class Renderable {
 
     protected static final Renderer renderer = Renderer.getInstance();
+    private static final Color DEFAULT_COLOR = new Color(112, 112, 112, 128);
 
     protected final Color color;
 
@@ -17,21 +19,12 @@ public abstract class Renderable {
 
     protected int ticksToLive;
 
-    /**
-     * Constructs a new Renderable.
-     *
-     * @param color       The color of the overlay.
-     * @param drawMode    How the overlay should be drawn (filled, outline, or both).
-     * @param ticksToLive The number of ticks this object should live before being removed (-1 for until manually removed).
-     * @param debug       Whether this is overlay is used for debugging purposes.
-     * @param depthTest   Whether this overlay should be depth tested.
-     */
-    public Renderable(Color color, DrawMode drawMode, int ticksToLive, boolean debug, boolean depthTest) {
-        this.color = color;
-        this.drawMode = drawMode;
-        this.ticksToLive = Math.max(-1, ticksToLive);
-        this.debug = debug;
-        this.depthTest = depthTest;
+    protected Renderable(Builder<?> builder) {
+        this.color = builder.color.orElse(DEFAULT_COLOR);
+        this.drawMode = builder.drawMode.orElse(DrawMode.BOTH);
+        this.ticksToLive = builder.ticksToLive.orElse(-1);
+        this.debug = builder.debug.orElse(false);
+        this.depthTest = builder.depthTest.orElse(true);
     }
 
     public final boolean isExpired() {
@@ -51,5 +44,44 @@ public abstract class Renderable {
     protected abstract void render(WorldRenderContext context);
 
     public abstract boolean equals(Renderable renderable);
+
+    protected static abstract class Builder<T extends Builder<T>> {
+
+        private Optional<Color> color = Optional.empty();
+        private Optional<DrawMode> drawMode = Optional.empty();
+        private Optional<Boolean> debug = Optional.empty();
+        private Optional<Boolean> depthTest = Optional.empty();
+        private Optional<Integer> ticksToLive = Optional.empty();
+
+        public T color(Color color) {
+            this.color = Optional.of(color);
+            return self();
+        }
+
+        public T drawMode(DrawMode drawMode) {
+            this.drawMode = Optional.of(drawMode);
+            return self();
+        }
+
+        public T debug(boolean debug) {
+            this.debug = Optional.of(debug);
+            return self();
+        }
+
+        public T depthTest(boolean depthTest) {
+            this.depthTest = Optional.of(depthTest);
+            return self();
+        }
+
+        public T ticksToLive(int ticksToLive) {
+            this.ticksToLive = Optional.of(Math.max(-1, ticksToLive));
+            return self();
+        }
+
+        protected abstract T self();
+
+        public abstract Renderable build();
+
+    }
 
 }

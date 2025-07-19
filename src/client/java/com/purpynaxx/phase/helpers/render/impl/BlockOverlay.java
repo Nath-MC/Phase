@@ -1,31 +1,19 @@
 package com.purpynaxx.phase.helpers.render.impl;
 
-import com.purpynaxx.phase.helpers.render.DrawMode;
 import com.purpynaxx.phase.helpers.render.Renderable;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 
-import java.awt.*;
+import java.util.Optional;
 
 public class BlockOverlay extends Renderable {
 
     private final Box box;
 
-    /**
-     * Constructs a new BlockOverlay.
-     *
-     * @param blockPos    The position of the block to overlay.
-     * @param color       The color of the box.
-     * @param drawMode    How the box should be drawn (filled, outline, or both).
-     * @param ticksToLive The number of ticks this object should live before being removed (-1 for until manually removed).
-     * @param debug       Whether this is overlay is used for debugging purposes.
-     * @param depthTest   Whether this overlay should be depth tested.
-     */
-    public BlockOverlay(BlockPos blockPos, Color color, DrawMode drawMode, int ticksToLive, boolean debug, boolean depthTest) {
-        super(color, drawMode, ticksToLive, debug, depthTest);
-        this.box = new Box(blockPos);
-        this.ticksToLive = ticksToLive;
+    private BlockOverlay(Builder builder) {
+        super(builder);
+        this.box = new Box(builder.blockPos.orElseThrow());
     }
 
     @Override
@@ -39,6 +27,31 @@ public class BlockOverlay extends Renderable {
             return this.box.equals(other.box);
         }
         return false;
+    }
+
+    public static class Builder extends Renderable.Builder<Builder> {
+
+        private Optional<BlockPos> blockPos = Optional.empty();
+
+        public Builder blockPos(BlockPos blockPos) {
+            this.blockPos = Optional.of(blockPos);
+            return this;
+        }
+
+        @Override
+        protected Builder self() {
+            return this;
+        }
+
+        @Override
+        public BlockOverlay build() {
+            if (blockPos.isEmpty()) {
+                throw new IllegalArgumentException("BlockPos cannot be empty");
+            }
+
+            return new BlockOverlay(this);
+        }
+
     }
 
 }
