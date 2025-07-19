@@ -4,7 +4,7 @@ import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.world.WorldChunkEvent;
 import com.purpynaxx.phase.helpers.entity.Player;
 import com.purpynaxx.phase.helpers.render.DrawMode;
-import com.purpynaxx.phase.helpers.render.Renderer;
+import com.purpynaxx.phase.helpers.render.Renderable;
 import com.purpynaxx.phase.helpers.render.impl.FaceOverlay;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.settings.ButtonSetting;
@@ -17,7 +17,6 @@ import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Nullable;
@@ -114,9 +113,8 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
                     .color(color)
                     .drawMode(DrawMode.FILL)
                     .ticksToLive(2)
-                    .debug(true)
                     .build();
-            renderer.addRenderable(faceOverlay);
+            renderer.addRenderable(this, faceOverlay);
         }
     }
 
@@ -187,6 +185,8 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
                     if (currentPath == null) {
                         onEnd(false);
                     }
+
+                    renderer.removeIf(this, Renderable::isDebug);
                 });
     }
 
@@ -221,6 +221,12 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
 
             // Add the current node's position to the closed set so we don't process it again.
             closedSet.add(currentNode.pos);
+            renderer.addRenderable(this, new FaceOverlay.Builder()
+                    .blockPos(currentNode.pos.down())
+                    .color(Color.RED)
+                    .debug(true)
+                    .drawMode(DrawMode.OUTLINE)
+                    .build());
 
             // --- Neighbor Exploration ---
             // Now, we check all valid neighbors of the current node.
@@ -242,6 +248,12 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
                 if (openSet.stream().noneMatch(n -> n.pos.equals(neighborPos) && n.gCost < tentativeGCost)) {
                     openSet.removeIf(n -> n.pos.equals(neighborPos)); // Remove old, more expensive path to neighbor
                     openSet.add(neighborNode);
+                    renderer.addRenderable(this, new FaceOverlay.Builder()
+                            .blockPos(neighborNode.pos.down())
+                            .color(new Color(0, 255, 0, 113))
+                            .debug(true)
+                            .drawMode(DrawMode.FILL)
+                            .build());
                 }
             }
         }
@@ -377,7 +389,6 @@ public class AutoWalk extends Module implements ClientTick.AFTER, WorldChunkEven
     @Override
     public void onDeactivate() {
         clearPath();
-        renderer.removeRenderablesIf(Renderer::isDebug);
     }
 
     private void clearPath() {

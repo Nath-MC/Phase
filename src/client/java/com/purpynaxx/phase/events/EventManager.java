@@ -210,11 +210,11 @@ public class EventManager {
 
         ClientPlayConnectionEvents.DISCONNECT.register((clientPlayNetworkHandler, minecraftClient) -> {
             // Invalidate renderer queue on disconnect
-            renderer.clearQueue();
+            renderer.clear();
         });
 
 
-        WorldRenderEvents.END.register(worldRenderContext -> Renderer.positionMatrixAndRender(worldRenderContext, () -> renderer.renderQueue(worldRenderContext)));
+        WorldRenderEvents.END.register(worldRenderContext -> Renderer.positionMatrixAndRender(worldRenderContext, () -> renderer.render(worldRenderContext)));
 
 
         // Register shutdown event

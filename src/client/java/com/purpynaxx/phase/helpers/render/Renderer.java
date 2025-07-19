@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.modules.miscellaneous.Debug;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
@@ -19,9 +20,12 @@ import org.joml.Quaternionf;
 
 import java.awt.*;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static net.minecraft.client.render.RenderPhase.ITEM_ENTITY_TARGET;
@@ -35,7 +39,7 @@ public final class Renderer {
     private static final Renderer INSTANCE = new Renderer();
     private static final Modules modules = Modules.getInstance();
 
-    private final List<Renderable> renderables = new CopyOnWriteArrayList<>();
+    private final Map<Module, List<Renderable>> renderablesByModuleMap = new ConcurrentHashMap<>();
 
     private Renderer() {}
 
@@ -55,20 +59,53 @@ public final class Renderer {
         matrixStack.pop();
     }
 
-    public static boolean isDebug(Renderable renderable) {
-        return renderable.isDebug();
-    }
-
     /**
      * Adds a Renderable object to the render queue.
      *
+     * @param module The module instance which own the renderable
      * @param renderable The Renderable object to be added.
      */
-    public void addRenderable(Renderable renderable) {
-        Objects.requireNonNull(renderable);
+    public void addRenderable(Module module, Renderable renderable) {
+        if (renderablesByModuleMap.putIfAbsent(module, new CopyOnWriteArrayList<>()) != null) {
+            getRenderables(module).orElseThrow().removeIf(existing -> existing.equals(renderable));
+        }
+        getRenderables(module).orElseThrow().add(renderable);
+    }
 
-        renderables.removeIf(existing -> existing.equals(renderable));
-        renderables.add(renderable);
+    private void forAllRenderables(Consumer<Renderable> consumer) {
+        for (List<Renderable> renderables : renderablesByModuleMap.values())
+            for (Renderable renderable : renderables)
+                consumer.accept(renderable);
+    }
+
+    /**
+     * Clears all renderable objects
+     */
+    public void clear() {
+        renderablesByModuleMap.clear();
+    }
+
+    /**
+     * Clears all renderable objects owned by {@code module}
+     *
+     * @param module The module instance
+     */
+    public void clear(Module module) {
+        getRenderables(module).ifPresent(List::clear);
+    }
+
+    private Optional<List<Renderable>> getRenderables(Module module) {
+        return Optional.ofNullable(renderablesByModuleMap.get(module));
+    }
+
+    /**
+     * Removes all renderable objects owned by {@code module} and matching the predicate {@code filter}
+     *
+     * @param module The module instance
+     * @param filter A predicate which returns {@code true} for renderables to be removed
+     */
+    public void removeIf(Module module, Predicate<Renderable> filter) {
+        getRenderables(module).ifPresent(renderables -> renderables.removeIf(filter));
     }
 
     /**
@@ -76,35 +113,19 @@ public final class Renderer {
      *
      * @param renderContext The current world render context.
      */
-    public void renderQueue(WorldRenderContext renderContext) {
-        for (Renderable renderable : renderables) {
-            if (renderable.isDebug() && !modules.isModuleActive(Debug.class)) continue;
+    public void render(WorldRenderContext renderContext) {
+        forAllRenderables(renderable -> {
+            if (renderable.isDebug() && !modules.isModuleActive(Debug.class)) return;
             renderable.render(renderContext);
-        }
+        });
     }
 
     /**
      * Updates the state of all Renderable objects in the queue.
      */
     public void tick() {
-        renderables.forEach(Renderable::tick);
-        renderables.removeIf(Renderable::isExpired);
-    }
-
-    /**
-     * Clears the render queue, removing all Renderable objects.
-     */
-    public void clearQueue() {
-        renderables.clear();
-    }
-
-    /**
-     * Removes all Renderable objects that match the given predicate from the render queue.
-     *
-     * @param predicate The predicate to test each Renderable object against.
-     */
-    public void removeRenderablesIf(Predicate<Renderable> predicate) {
-        renderables.removeIf(predicate);
+        forAllRenderables(Renderable::tick);
+        renderablesByModuleMap.values().forEach(renderables -> renderables.removeIf(Renderable::isExpired));
     }
 
 
@@ -321,7 +342,7 @@ public final class Renderer {
                 1536,
                 OVERLAY_LINES,
                 RenderLayer.MultiPhaseParameters.builder()
-                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.empty()))
+                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.of(2.0D)))
                         .layering(VIEW_OFFSET_Z_LAYERING)
                         .target(ITEM_ENTITY_TARGET)
                         .build(false)
@@ -339,7 +360,7 @@ public final class Renderer {
                 1536,
                 LINES,
                 RenderLayer.MultiPhaseParameters.builder()
-                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.empty()))
+                        .lineWidth(new RenderPhase.LineWidth(OptionalDouble.of(2.0D)))
                         .layering(VIEW_OFFSET_Z_LAYERING)
                         .target(ITEM_ENTITY_TARGET)
                         .build(false)
