@@ -8,7 +8,7 @@ import java.util.Optional;
 public abstract class Renderable {
 
     protected static final Renderer renderer = Renderer.getInstance();
-    private static final Color DEFAULT_COLOR = new Color(112, 112, 112, 128);
+    private static final Color DEFAULT_COLOR = new Color(112, 112, 112, 178);
 
     protected final Color color;
 
