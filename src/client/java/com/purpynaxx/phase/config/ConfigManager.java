@@ -2,6 +2,7 @@ package com.purpynaxx.phase.config;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.purpynaxx.phase.Phase;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -101,8 +102,12 @@ public final class ConfigManager {
 
         File nbtFile = ensureNbtFile(file);
 
-        if (!nbtFile.exists())
+        if (!nbtFile.exists()) {
+            if (Phase.IS_DEV_ENVIRONMENT) {
+                logger.warn("The specified file \"{}\" has not been found, using default data.", file.getName());
+            }
             return defaultSupplier.get();
+        }
 
         try {
             NbtCompound rootCompound = NbtIo.read((nbtFile.toPath()));

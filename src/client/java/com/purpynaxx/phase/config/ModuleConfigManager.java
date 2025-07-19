@@ -2,6 +2,7 @@ package com.purpynaxx.phase.config;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.purpynaxx.phase.Phase;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.settings.Setting;
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ModuleConfigManager {
 
@@ -69,21 +71,25 @@ public final class ModuleConfigManager {
 
     public static boolean loadModule(Module module) {
         try {
-            String filename = modules_directory + "/" + module.getName().toLowerCase();
+            String filename = modules_directory + File.separatorChar + module.getName().toLowerCase();
             File configFile = ConfigManager.getConfigFile(filename);
 
-            if (!configFile.exists()) {
-                logger.debug("No configuration file found for module: {}", module.getName());
-                return false;
-            }
+            AtomicBoolean usingDefault = new AtomicBoolean(false);
 
-            ModuleConfig defaultConfig = new ModuleConfig(module.getName(), new HashMap<>());
-            ModuleConfig config = ConfigManager.loadData(configFile, ModuleConfig.CODEC, () -> defaultConfig);
+            ModuleConfig config = ConfigManager.loadData(configFile, ModuleConfig.CODEC, () -> {
+                usingDefault.set(true);
+                return new ModuleConfig(module.getName(), new HashMap<>());
+            });
 
             // Apply the loaded configuration
             applyModuleConfig(module, config);
 
-            logger.debug("Loaded configuration for module: {}", module.getName());
+            if (usingDefault.get()) {
+                return false;
+            } else if (Phase.IS_DEV_ENVIRONMENT) {
+                logger.info("Loaded configuration for module: {}", module.getName());
+            }
+
             return true;
         } catch (Exception e) {
             logger.error("Failed to load configuration for module: {}", module.getName(), e);
