@@ -4,8 +4,6 @@ import com.purpynaxx.phase.gui.ModuleScreen;
 import com.purpynaxx.phase.modules.Module;
 import net.minecraft.text.Text;
 
-import java.util.concurrent.Executors;
-
 public class GUI extends Module {
 
     private final static Text title = Text.translatable("interface.gui.title");
@@ -17,22 +15,13 @@ public class GUI extends Module {
 
     @Override
     public void onActivate() {
-        if (client.isFinishedLoading()) {
-            client.setScreen(new ModuleScreen(title.getString(), client.currentScreen));
-        } else {
-            Executors.newVirtualThreadPerTaskExecutor().submit(() -> {
-                while (!client.isFinishedLoading()) {
-                    Thread.onSpinWait();
-                }
-                client.execute(() -> client.setScreen(new ModuleScreen(title.getString(), client.currentScreen)));
-            });
-        }
+        client.setScreen(new ModuleScreen(title.getString(), client.currentScreen));
     }
 
     @Override
     public void onDeactivate() {
-        if (client.currentScreen instanceof ModuleScreen moduleScreen)
-            moduleScreen.close();
+        if (client.currentScreen instanceof ModuleScreen)
+            client.currentScreen.close();
     }
 
 }

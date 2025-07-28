@@ -254,7 +254,6 @@ public final class IOManager {
             } else {
                 logger.warn("Setting '{}' not found in module '{}'", settingId, module.getName());
             }
-            module.triggerEvents();
         }
     }
 
