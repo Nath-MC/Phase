@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.modules;
 
-import com.purpynaxx.phase.config.ModuleConfigManager;
+import com.purpynaxx.phase.config.IOManager;
 import com.purpynaxx.phase.settings.Setting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,7 +65,7 @@ public class Modules {
             }
 
             try {
-                ModuleConfigManager.loadAllModules();
+                IOManager.loadAllModules();
             } catch (Exception e) {
                 LOGGER.error("Failed to load module configurations", new RuntimeException(e));
             }

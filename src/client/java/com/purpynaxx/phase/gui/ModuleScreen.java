@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.gui;
 
-import com.purpynaxx.phase.config.ConfigManager;
+import com.purpynaxx.phase.config.IOManager;
 import com.purpynaxx.phase.gui.serialization.Container;
 import com.purpynaxx.phase.gui.serialization.PanelState;
 import com.purpynaxx.phase.gui.widgets.ContainerPanelWidget;
@@ -17,6 +17,7 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -26,13 +27,10 @@ import static com.purpynaxx.phase.Phase.LOGGER;
 
 public class ModuleScreen extends Screen {
 
-    private static final File SAVED_STATES_FILE = ConfigManager.getConfigFile("gui/states");
-
+    private static final Path STATES_PATH = Path.of("gui/states");
     private static final int PANEL_PADDING = 16;
-
     private static final Modules modules = Modules.getInstance();
     private static final Categories categories = Categories.getInstance();
-
     private static Container currentContainer = new Container(new ArrayList<>(), 0, 0);
     private final List<ContainerPanelWidget> panels = new ArrayList<>();
 
@@ -63,7 +61,7 @@ public class ModuleScreen extends Screen {
     }
 
     private void loadPanelStates() {
-        currentContainer = ConfigManager.loadData(SAVED_STATES_FILE,
+        currentContainer = IOManager.loadData(STATES_PATH,
                 Container.CODEC,
                 () -> new Container(new ArrayList<>(), this.width, this.height));
     }
@@ -141,7 +139,7 @@ public class ModuleScreen extends Screen {
         }
 
         Container container = new Container(statesToSave, this.width, this.height);
-        ConfigManager.saveData(SAVED_STATES_FILE, Container.CODEC, container);
+        IOManager.saveData(STATES_PATH, Container.CODEC, container);
         currentContainer = container;
     }
 

@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.events;
 
-import com.purpynaxx.phase.config.ModuleConfigManager;
+import com.purpynaxx.phase.config.IOManager;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.events.interfaces.world.WorldChunkEvent;
@@ -218,7 +218,7 @@ public class EventManager {
 
 
         // Register shutdown event
-        ClientLifecycleEvents.CLIENT_STOPPING.register(ModuleConfigManager::shutdown);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(IOManager::shutdown);
     }
 
     private void logRegistration(Module module, Class<?> listenerClass) {
