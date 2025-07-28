@@ -1,6 +1,5 @@
 package com.purpynaxx.phase.settings;
 
-import com.mojang.serialization.Codec;
 import com.purpynaxx.phase.modules.Module;
 import net.minecraft.text.Text;
 
@@ -29,7 +28,6 @@ public abstract class Setting<T> {
         return module;
     }
 
-    public abstract Codec<T> getValueCodec();
 
     public String getId() {
         return id;

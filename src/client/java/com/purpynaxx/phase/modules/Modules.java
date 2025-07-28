@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.modules;
 
-import com.purpynaxx.phase.config.IOManager;
+import com.purpynaxx.phase.io.IOManager;
 import com.purpynaxx.phase.settings.Setting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

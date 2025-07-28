@@ -1,6 +1,5 @@
 package com.purpynaxx.phase.events;
 
-import com.purpynaxx.phase.config.IOManager;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.events.interfaces.world.WorldChunkEvent;
@@ -9,6 +8,7 @@ import com.purpynaxx.phase.events.interfaces.world.WorldRender;
 import com.purpynaxx.phase.events.interfaces.world.WorldTick;
 import com.purpynaxx.phase.events.network.PacketEvent;
 import com.purpynaxx.phase.helpers.render.Renderer;
+import com.purpynaxx.phase.io.IOManager;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.modules.Modules;

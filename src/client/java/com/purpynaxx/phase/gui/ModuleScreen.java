@@ -1,10 +1,10 @@
 package com.purpynaxx.phase.gui;
 
-import com.purpynaxx.phase.config.IOManager;
-import com.purpynaxx.phase.gui.serialization.Container;
-import com.purpynaxx.phase.gui.serialization.PanelState;
 import com.purpynaxx.phase.gui.widgets.ContainerPanelWidget;
 import com.purpynaxx.phase.gui.widgets.ModuleWidget;
+import com.purpynaxx.phase.io.IOManager;
+import com.purpynaxx.phase.io.serialization.Container;
+import com.purpynaxx.phase.io.serialization.PanelState;
 import com.purpynaxx.phase.modules.Categories;
 import com.purpynaxx.phase.modules.Category;
 import com.purpynaxx.phase.modules.Module;
@@ -16,7 +16,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -99,9 +98,9 @@ public class ModuleScreen extends Screen {
 
                 createAndPopulatePanel(category, x, y, state.collapsed());
             } catch (IllegalArgumentException e) {
-                LOGGER.error("No category found for title '{}' from config. Skipping panel.", state.title(), e);
+                LOGGER.error("No category found for title '{}'. Skipping panel.", state.title(), e);
             } catch (Exception e) {
-                LOGGER.error("Error creating panel for '{}' from config.", state.title(), e);
+                LOGGER.error("Error creating panel for '{}'", state.title(), e);
             }
         }
     }

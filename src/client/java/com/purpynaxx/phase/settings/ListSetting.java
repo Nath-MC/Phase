@@ -1,7 +1,5 @@
 package com.purpynaxx.phase.settings;
 
-import com.mojang.serialization.Codec;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -29,12 +27,6 @@ public class ListSetting<T> extends Setting<Integer> {
     public T get() {
         return values.get(value);
     }
-
-    @Override
-    public Codec<Integer> getValueCodec() {
-        return Codec.INT;
-    }
-
 
     public static class Builder<T> extends Setting.Builder<ListSetting.Builder<T>> {
 

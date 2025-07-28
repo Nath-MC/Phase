@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.gui.serialization;
+package com.purpynaxx.phase.io.serialization;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;

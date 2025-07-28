@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.config;
+package com.purpynaxx.phase.io;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -19,11 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,25 +38,6 @@ public final class IOManager {
     private static final Modules modules = Modules.getInstance();
 
     private IOManager() {}
-
-    /**
-     * Resolves a config file path within the default mod config directory.
-     * Creates the directory and any necessary parent directories if they don't exist.
-     *
-     * @param path The path of the file
-     * @return The File object representing the file.
-     */
-    public static File getFile(Path path) {
-        URI uri = BASE_DIR.resolve(path).toUri();
-        File configFile = new File(uri);
-        File parentDir = configFile.getParentFile();
-
-        if (parentDir != null && !parentDir.exists())
-            if (!parentDir.mkdirs())
-                logger.error("Could not create parent directories for config file: {}", parentDir.getAbsolutePath());
-
-        return configFile;
-    }
 
     /**
      * Saves data to an NBT file using the provided Codec.
@@ -85,8 +62,26 @@ public final class IOManager {
         try {
             NbtIo.write(rootCompound, nbtFile.toPath());
         } catch (IOException e) {
-            logger.error("Failed to write data to config file: {}", nbtFile.getAbsolutePath(), e);
+            logger.error("Failed to write data to file: {}", nbtFile.getAbsolutePath(), e);
         }
+    }
+
+    /**
+     * Resolves a file path within the default mod config directory.
+     * Creates the directory and any necessary parent directories if they don't exist.
+     *
+     * @param path The path of the file
+     * @return The File object representing the file.
+     */
+    public static File getFile(Path path) {
+        URI uri = BASE_DIR.resolve(path).toUri();
+        File configFile = new File(uri);
+        File parentDir = configFile.getParentFile();
+
+        if (parentDir != null && !parentDir.exists())
+            if (!parentDir.mkdirs()) logger.error("Could not create parent directories for file: {}", parentDir.getAbsolutePath());
+
+        return configFile;
     }
 
     /**
@@ -131,14 +126,14 @@ public final class IOManager {
             if (rootCompound != null && rootCompound.contains(ROOT)) {
                 NbtElement encodedElement = rootCompound.get(ROOT);
                 DataResult<T> result = codec.parse(NbtOps.INSTANCE, encodedElement);
-                Optional<T> loadedDataOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to parse data from config file {}: {}", nbtFile.getName(), errorMsg)).orElseThrow());
+                Optional<T> loadedDataOptional = Optional.of(result.resultOrPartial(errorMsg -> logger.error("Failed to parse data from file {}: {}", nbtFile.getName(), errorMsg)).orElseThrow());
                 return loadedDataOptional.get();
             } else {
                 logger.warn("Config file {} does not contain the expected root key '{}', using default data.", nbtFile.getName(), ROOT);
                 return defaultSupplier.get();
             }
         } catch (IOException e) {
-            logger.error("Failed to read config file {}:", nbtFile.getAbsolutePath(), e);
+            logger.error("Failed to read file {}:", nbtFile.getAbsolutePath(), e);
             return defaultSupplier.get();
         } catch (Exception e) {
             logger.error("Unexpected error loading data from {}:", nbtFile.getAbsolutePath(), e);
