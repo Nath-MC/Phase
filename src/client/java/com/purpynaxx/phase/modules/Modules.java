@@ -22,7 +22,7 @@ public class Modules {
 
     private final Set<Module> modules = new HashSet<>();
 
-    private final Map<Class<? extends Module>, Module> classModuleBaseMap = new HashMap<>();
+    private final Map<Class<? extends Module>, Module> moduleByClassMap = new HashMap<>();
 
     private boolean registered;
 
@@ -75,14 +75,15 @@ public class Modules {
     }
 
     private void add(Class<? extends Module> clazz, Module m) {
-        this.classModuleBaseMap.put(clazz, m);
+        this.moduleByClassMap.put(clazz, m);
         this.modules.add(m);
         categories.submit(m);
         if (IS_DEV_ENVIRONMENT) LOGGER.info("{} has been registered.", clazz.getSimpleName());
     }
 
     private void onFail(String name, Exception e) {
-        LOGGER.error("Failed to instantiate {} : {}", name, e);
+        String message = String.format("Failed to instantiate module: %s", name);
+        LOGGER.error(message, e);
         this.failedInstantiation++;
     }
 
@@ -91,7 +92,7 @@ public class Modules {
     }
 
     public <T extends Module> T getModule(@NotNull Class<T> clazz) {
-        return clazz.cast(classModuleBaseMap.get(clazz));
+        return clazz.cast(moduleByClassMap.get(clazz));
     }
 
     public <T extends Module> boolean isModuleActive(Class<T> clazz) {
@@ -109,12 +110,13 @@ public class Modules {
 
     public @Nullable Setting<?> getSetting(Module module, String id) {
         if (module == null || id == null || id.isEmpty()) return null;
-        List<Setting<?>> settings = module.getSettings();
-        for (Setting<?> setting : settings)
-            if (setting.getId().equalsIgnoreCase(id))
-                return setting;
 
-        return null;
+        Optional<Setting<?>> setting = module.getSettings()
+                .stream()
+                .filter(s -> s.getId().equalsIgnoreCase(id))
+                .findFirst();
+
+        return setting.orElse(null);
     }
 
 }
