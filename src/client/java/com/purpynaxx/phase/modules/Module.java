@@ -25,8 +25,7 @@ public abstract class Module {
     private final Setting<Boolean> active = new BooleanSetting.Builder()
             .id("active")
             .name(Text.translatable("settings.screen.active.title"))
-            .description(Text.translatable("settings.screen.active.description"))
-            .defaultValue(() -> false)
+            .description(Text.translatable("settings.screen.active.description")).module(this).defaultValue(false)
             .build();
 
 

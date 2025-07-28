@@ -1,26 +1,35 @@
 package com.purpynaxx.phase.settings;
 
+import com.mojang.serialization.Codec;
+import com.purpynaxx.phase.modules.Module;
 import net.minecraft.text.Text;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 
 public abstract class Setting<T> {
 
-    private final String id;
-    private final Text name;
-    private final Text description;
-    private final Supplier<T> defaultValueSupplier;
-    private T value;
+    protected final String id;
+    protected final Text name;
+    protected final Text description;
+    protected final Module module;
+    protected final T defaultValue;
+    protected T value;
 
     @SuppressWarnings("unchecked")
     protected Setting(Builder<?> builder) {
-        this.id = builder.id;
-        this.name = builder.name;
+        this.id = builder.id.orElseThrow(() -> new IllegalArgumentException("Setting ID cannot be null"));
+        this.name = builder.name.orElseThrow(() -> new IllegalArgumentException("Setting name cannot be null"));
         this.description = builder.description.orElse(Text.empty());
-        this.defaultValueSupplier = (Supplier<T>) builder.defaultValue;
-        this.value = this.defaultValueSupplier.get();
+        this.module = builder.module.orElseThrow(() -> new IllegalArgumentException("Module cannot be null"));
+        this.defaultValue = (T) builder.defaultValue.orElseThrow(() -> new IllegalArgumentException("A default value must be provided"));
+        this.value = this.defaultValue;
     }
+
+    public Module getModule() {
+        return module;
+    }
+
+    public abstract Codec<T> getValueCodec();
 
     public String getId() {
         return id;
@@ -35,8 +44,8 @@ public abstract class Setting<T> {
         return (Class<T>) this.value.getClass();
     }
 
-    public Text getDescription() {
-        return description;
+    public String getDescription() {
+        return description.getString();
     }
 
     public T getValue() {
@@ -51,51 +60,49 @@ public abstract class Setting<T> {
     }
 
     public boolean isDefault() {
-        return value.equals(defaultValueSupplier.get());
+        return value.equals(defaultValue);
     }
 
     public void reset() {
-        this.value = this.defaultValueSupplier.get();
+        this.value = this.defaultValue;
     }
 
-    protected static abstract class Builder<T extends Builder<T>> {
+    protected static abstract class Builder<B extends Builder<B>> {
 
-        protected String id;
-        protected Text name;
-        protected Optional<Text> description;
-        protected Supplier<?> defaultValue;
+        protected Optional<String> id = Optional.empty();
+        protected Optional<Text> name = Optional.empty();
+        protected Optional<Text> description = Optional.empty();
+        protected Optional<Module> module = Optional.empty();
+        protected Optional<Object> defaultValue = Optional.empty();
 
-        public T id(String id) {
-            this.id = id;
+        public B id(String id) {
+            if (id.isBlank()) throw new IllegalArgumentException("Setting ID cannot be empty or blank");
+
+            this.id = Optional.of(id);
             return self();
         }
 
-        public T name(Text name) {
-            this.name = name;
+        protected abstract B self();
+
+        public B name(Text name) {
+            this.name = Optional.of(name);
             return self();
         }
 
-        public T description(Text description) {
+        public B description(Text description) {
             this.description = Optional.of(description);
             return self();
         }
 
-        public T defaultValue(Supplier<?> defaultValue) {
-            this.defaultValue = defaultValue;
+        public B module(Module module) {
+            this.module = Optional.of(module);
             return self();
         }
 
-        protected void check() {
-            if (id == null || id.isEmpty()) {
-                throw new IllegalArgumentException("Setting ID cannot be null or empty");
-            } else if (name == null) {
-                throw new IllegalArgumentException("Setting name cannot be null");
-            } else if (defaultValue == null) {
-                throw new IllegalArgumentException("A supplier for the default value must be provided");
-            }
+        public B defaultValue(Object defaultValue) {
+            this.defaultValue = Optional.of(defaultValue);
+            return self();
         }
-
-        protected abstract T self();
 
         public abstract Setting<?> build();
 

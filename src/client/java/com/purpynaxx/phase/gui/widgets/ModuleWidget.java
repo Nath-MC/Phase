@@ -1,9 +1,13 @@
 package com.purpynaxx.phase.gui.widgets;
 
-import com.purpynaxx.phase.gui.widgets.settings.*;
+import com.purpynaxx.phase.gui.widgets.settings.BooleanWidget;
+import com.purpynaxx.phase.gui.widgets.settings.ListWidget;
+import com.purpynaxx.phase.gui.widgets.settings.SettingWidget;
 import com.purpynaxx.phase.helpers.color.ColorHelper;
 import com.purpynaxx.phase.modules.Module;
-import com.purpynaxx.phase.settings.*;
+import com.purpynaxx.phase.settings.BooleanSetting;
+import com.purpynaxx.phase.settings.ListSetting;
+import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -26,9 +30,7 @@ public class ModuleWidget implements Element, Drawable {
 
     static {
         SETTING_WIDGET_FACTORIES.put(BooleanSetting.class, (SettingWidgetFactory<BooleanSetting>) BooleanWidget::new);
-        SETTING_WIDGET_FACTORIES.put(CyclingSetting.class, (SettingWidgetFactory<CyclingSetting<?>>) CyclingWidget::new);
-        SETTING_WIDGET_FACTORIES.put(PositionInputSetting.class, (SettingWidgetFactory<PositionInputSetting>) PositionInputWidget::new);
-        SETTING_WIDGET_FACTORIES.put(ButtonSetting.class, (SettingWidgetFactory<ButtonSetting>) ButtonWidget::new);
+        SETTING_WIDGET_FACTORIES.put(ListSetting.class, (SettingWidgetFactory<ListSetting<?>>) ListWidget::new);
     }
 
     private final Module module;

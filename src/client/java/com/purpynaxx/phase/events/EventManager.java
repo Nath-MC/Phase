@@ -8,7 +8,6 @@ import com.purpynaxx.phase.events.interfaces.world.WorldConnectivity;
 import com.purpynaxx.phase.events.interfaces.world.WorldRender;
 import com.purpynaxx.phase.events.interfaces.world.WorldTick;
 import com.purpynaxx.phase.events.network.PacketEvent;
-import com.purpynaxx.phase.gui.widgets.settings.PositionInputWidget;
 import com.purpynaxx.phase.helpers.render.Renderer;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
 import com.purpynaxx.phase.modules.Module;
@@ -186,7 +185,7 @@ public class EventManager {
             if (ignoredScreens.contains(screen.getClass())) return;
 
             ScreenKeyboardEvents.beforeKeyPress(screen).register((screen1, key, scancode, modifiers) -> {
-                if (screen.getFocused() instanceof TextFieldWidget || screen.getFocused() instanceof PositionInputWidget)
+                if (screen.getFocused() instanceof TextFieldWidget)
                     return;
                 if (keyBinding.matchesKey(key, scancode)) {
                     modules.toggleModule(GUI.class);

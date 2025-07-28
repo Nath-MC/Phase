@@ -7,7 +7,7 @@ import com.purpynaxx.phase.helpers.render.DrawMode;
 import com.purpynaxx.phase.helpers.render.impl.FaceOverlay;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.Module;
-import com.purpynaxx.phase.settings.CyclingSetting;
+import com.purpynaxx.phase.settings.ListSetting;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LeavesBlock;
@@ -58,10 +58,10 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
         suitableItems.add(Items.COBWEB);
     }
 
-    private final CyclingSetting<Mode> mode = new CyclingSetting.Builder<Mode>()
+    private final ListSetting<Mode> mode = new ListSetting.Builder<Mode>()
             .id("mode")
             .name(Text.translatable("settings.screen.cycling.title"))
-            .description(Text.translatable("settings.screen.cycling.description", name))
+            .description(Text.translatable("settings.screen.cycling.description", name)).module(this)
             .values(List.of(Mode.values()))
             .build();
 
@@ -106,7 +106,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
     @Override
     public void onPacketSend(Packet<?> packet, CallbackInfo event) {
-        if (mode.getValue() == Mode.PACKET) {
+        if (mode.get() == Mode.PACKET) {
 
             if (
                     packet instanceof PlayerMoveC2SPacket movePacket
@@ -124,7 +124,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
     @Override
     public void afterClientTick(MinecraftClient client) {
-        if (mode.getValue() == Mode.MLG) {
+        if (mode.get() == Mode.MLG) {
             boolean isFalling = Player.canTakeFallDamage(client.player);
             if (isFalling && !placed) {
                 handleFall();
