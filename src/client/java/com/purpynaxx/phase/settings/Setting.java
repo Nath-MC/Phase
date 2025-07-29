@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.settings;
 
+import com.mojang.serialization.Codec;
 import com.purpynaxx.phase.modules.Module;
 import net.minecraft.text.Text;
 
@@ -28,6 +29,7 @@ public abstract class Setting<T> {
         return module;
     }
 
+    public abstract Codec<T> getCodec();
 
     public String getId() {
         return id;
@@ -55,6 +57,17 @@ public abstract class Setting<T> {
             throw new IllegalArgumentException("Setting value cannot be null");
         }
         this.value = value;
+    }
+
+    public void castAndSetValue(Object value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Setting value cannot be null");
+        }
+
+        if (!getType().isInstance(value)) {
+            throw new ClassCastException(String.format("Cannot cast %s to %s", value.getClass().getName(), getType().getName()));
+        }
+        this.value = getType().cast(value);
     }
 
     public boolean isDefault() {

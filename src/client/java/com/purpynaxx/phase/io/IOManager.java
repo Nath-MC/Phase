@@ -19,7 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -100,6 +100,93 @@ public final class IOManager {
     }
 
     /**
+     * Saves the configuration for all registered modules.
+     * This operation runs on a virtual thread.
+     */
+    private static void saveAllModules() {
+        Thread.currentThread().setName("IOManager/saveAllModules");
+        long startTime = System.currentTimeMillis();
+
+        for (Module module : modules.getModules()) {
+            try {
+                NbtCompound settingsCompound = new NbtCompound();
+
+                for (Setting<?> setting : module.getSettings()) {
+                    NbtElement encodedValue = encodeSetting(setting);
+                    settingsCompound.put(setting.getId(), encodedValue);
+                }
+
+                ModuleConfig config = new ModuleConfig(module.getName(), settingsCompound);
+                Path path = MODULES_DIR.resolve(module.getName().toLowerCase());
+                IOManager.saveData(path, ModuleConfig.CODEC, config);
+
+            } catch (Exception e) {
+                logger.error("Failed to save configuration for module: {}", module.getName(), e);
+            }
+        }
+
+        logger.info("Saved all module configurations in {}ms", System.currentTimeMillis() - startTime);
+    }
+
+    /**
+     * Initiates the shutdown process, saving all module configurations.
+     */
+    public static void shutdown(MinecraftClient ignored) {
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            executorService.submit(IOManager::saveAllModules);
+        }
+    }
+
+    private static <T> NbtElement encodeSetting(Setting<T> setting) {
+        return setting.getCodec().encodeStart(NbtOps.INSTANCE, setting.getValue()).resultOrPartial(errorMsg -> logger.error("Failed to encode setting '{}' for module '{}': {}", setting.getId(),
+                setting.getModule().getName(), errorMsg)).orElse(new NbtCompound());
+    }
+
+    /**
+     * Loads the configuration for a specific module.
+     *
+     * @param module The module for which to load the configuration.
+     * @return true if the configuration was loaded successfully, false if default data was used or an error occurred.
+     */
+    public static boolean loadModule(Module module) {
+        try {
+            AtomicBoolean usingDefault = new AtomicBoolean(false);
+            Path path = MODULES_DIR.resolve(module.getName().toLowerCase());
+
+            ModuleConfig config = IOManager.loadData(path, ModuleConfig.CODEC, () -> {
+                usingDefault.set(true);
+                return new ModuleConfig(module.getName(), new NbtCompound());
+            });
+
+            applyModuleConfig(module, config);
+
+            if (usingDefault.get()) {
+                return false;
+            } else if (Phase.IS_DEV_ENVIRONMENT) {
+                logger.info("Loaded configuration for module: {}", module.getName());
+            }
+
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to load configuration for module: {}", module.getName(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Loads configurations for all registered modules.
+     * It attempts to load each module's configuration and logs the outcome.
+     */
+    public static void loadAllModules() {
+        int loadedCount = 0;
+        for (Module module : modules.getModules())
+            if (loadModule(module)) loadedCount++;
+        if (loadedCount > 0)
+            logger.info("Loaded {} module configurations", loadedCount);
+        else logger.warn("Using default configuration");
+    }
+
+    /**
      * Loads data from an NBT file using the provided Codec.
      * It expects the data to be wrapped in a root NbtCompound with a specific key.
      *
@@ -115,7 +202,7 @@ public final class IOManager {
 
         if (!nbtFile.exists()) {
             if (Phase.IS_DEV_ENVIRONMENT) {
-                logger.warn("The specified file \"{}\" has not been found, using default data.", nbtFile.getName());
+                logger.warn("The requested file \"{}\" has not been found, using default data.", nbtFile.getName());
             }
             return defaultSupplier.get();
         }
@@ -142,94 +229,6 @@ public final class IOManager {
     }
 
     /**
-     * Initiates the shutdown process, saving all module configurations.
-     */
-    public static void shutdown(MinecraftClient ignored) {
-        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
-            executorService.submit(IOManager::saveAllModules);
-        }
-    }
-
-    /**
-     * Saves the configuration for all registered modules.
-     * This operation runs on a virtual thread.
-     */
-    private static void saveAllModules() {
-        Thread.currentThread().setName("IOManager/saveAllModules");
-
-        long startTime = System.currentTimeMillis();
-
-        for (Module module : modules.getModules()) {
-            try {
-                Map<String, Object> settingValues = new HashMap<>();
-                List<Setting<?>> settings = module.getSettings();
-
-                for (Setting<?> setting : settings) {
-                    if (setting.getType().isEnum()) {
-                        settingValues.put(setting.getId(), ((Enum<?>) setting.getValue()).ordinal());
-                        continue;
-                    }
-                    settingValues.put(setting.getId(), setting.getValue());
-                }
-
-                ModuleConfig config = new ModuleConfig(module.getName(), settingValues);
-
-                Path path = MODULES_DIR.resolve(module.getName().toLowerCase());
-                IOManager.saveData(path, ModuleConfig.CODEC, config);
-            } catch (Exception e) {
-                logger.error("Failed to save configuration for module: {}", module.getName(), e);
-            }
-        }
-
-        logger.info("Saved all module configurations in {}ms", System.currentTimeMillis() - startTime);
-    }
-
-    /**
-     * Loads configurations for all registered modules.
-     * It attempts to load each module's configuration and logs the outcome.
-     */
-    public static void loadAllModules() {
-        int loadedCount = 0;
-        for (Module module : modules.getModules())
-            if (loadModule(module)) loadedCount++;
-        if (loadedCount > 0)
-            logger.info("Loaded {} module configurations", loadedCount);
-        else logger.warn("Using default configuration");
-    }
-
-    /**
-     * Loads the configuration for a specific module.
-     *
-     * @param module The module for which to load the configuration.
-     * @return true if the configuration was loaded successfully, false if default data was used or an error occurred.
-     */
-    public static boolean loadModule(Module module) {
-        try {
-            AtomicBoolean usingDefault = new AtomicBoolean(false);
-            Path path = MODULES_DIR.resolve(module.getName().toLowerCase());
-
-            ModuleConfig config = IOManager.loadData(path, ModuleConfig.CODEC, () -> {
-                usingDefault.set(true);
-                return new ModuleConfig(module.getName(), new HashMap<>());
-            });
-
-            // Apply the loaded configuration
-            applyModuleConfig(module, config);
-
-            if (usingDefault.get()) {
-                return false;
-            } else if (Phase.IS_DEV_ENVIRONMENT) {
-                logger.info("Loaded configuration for module: {}", module.getName());
-            }
-
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to load configuration for module: {}", module.getName(), e);
-            return false;
-        }
-    }
-
-    /**
      * Applies a loaded configuration to a module.
      * It iterates through the setting values in the configuration and attempts to apply them to the module's settings.
      *
@@ -237,13 +236,18 @@ public final class IOManager {
      * @param config The ModuleConfig containing the setting values.
      */
     private static void applyModuleConfig(Module module, ModuleConfig config) {
-        for (Map.Entry<String, Object> entry : config.settingValues().entrySet()) {
-            String settingId = entry.getKey();
-            Object value = entry.getValue();
+        NbtCompound settingsCompound = config.settings();
 
+        for (String settingId : settingsCompound.getKeys()) {
             Setting<?> setting = modules.getSetting(module, settingId);
+
             if (setting != null) {
-                applySetting(setting, value);
+                NbtElement nbtValue = settingsCompound.get(settingId);
+
+                if (nbtValue != null) {
+                    setting.getCodec().parse(NbtOps.INSTANCE, nbtValue).resultOrPartial(errorMsg -> logger.error("Failed to decode setting '{}' for module '{}': {}", setting.getId(), setting.getModule().getName(),
+                            errorMsg)).ifPresent(setting::castAndSetValue);
+                }
             } else {
                 logger.warn("Setting '{}' not found in module '{}'", settingId, module.getName());
             }
@@ -251,101 +255,10 @@ public final class IOManager {
     }
 
     /**
-     * Applies a value to a setting with type safety.
-     * This method handles various primitive types, Strings, Booleans, and Enums.
-     *
-     * @param setting The setting to which the value should be applied.
-     * @param value   The value to apply.
-     * @param <T>     The type of the setting's value.
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> void applySetting(Setting<T> setting, Object value) {
-        if (value == null) return;
-
-        try {
-            Class<T> type = setting.getType();
-
-            if (type.isEnum()) {
-                try {
-                    // Assuming value is a String representing the ordinal
-                    int ordinal = Integer.parseInt((String) value);
-                    T enumValue = Arrays.stream(type.getEnumConstants()).toList().get(ordinal);
-                    setting.setValue(enumValue);
-                } catch (IllegalArgumentException e) {
-                    logger.error("Invalid enum value '{}' for enum type {}", value, type.getName());
-                }
-                return;
-            }
-
-            if (type.isAssignableFrom(String.class)) {
-                setting.setValue((T) value);
-                return;
-            }
-
-            if (type.isAssignableFrom(Boolean.class)) {
-                setting.setValue((T) Boolean.valueOf((String) value));
-                return;
-            }
-
-            if (type.isAssignableFrom(Number.class)) {
-                // Handle different number types explicitly
-                if (type.isAssignableFrom(Byte.class)) {
-                    setting.setValue((T) Byte.valueOf(value.toString()));
-                    return;
-                }
-                if (type.isAssignableFrom(Short.class)) {
-                    setting.setValue((T) Short.valueOf(value.toString()));
-                    return;
-                }
-                if (type.isAssignableFrom(Integer.class)) {
-                    setting.setValue((T) Integer.valueOf(value.toString()));
-                    return;
-                }
-                if (type.isAssignableFrom(Float.class)) {
-                    setting.setValue((T) Float.valueOf(value.toString()));
-                    return;
-                }
-                if (type.isAssignableFrom(Double.class)) {
-                    setting.setValue((T) Double.valueOf(value.toString()));
-                    return;
-                }
-                if (type.isAssignableFrom(Long.class)) {
-                    setting.setValue((T) Long.valueOf(value.toString()));
-                    return;
-                }
-            }
-
-            logger.error("Type mismatch for setting '{}': expected {}, got {}",
-                    setting.getName(),
-                    setting.getValue().getClass().getSimpleName(),
-                    value.getClass().getSimpleName());
-
-        } catch (Exception e) {
-            logger.error("Failed to apply value to setting '{}': {}", setting.getName(), e.getMessage());
-        }
-    }
-
-    /**
      * Represents the configuration data for a single module.
      * This record includes the module's name and a map of its setting values.
      */
-    record ModuleConfig(String moduleName, Map<String, Object> settingValues) {
-
-        public static final Codec<ModuleConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                Codec.STRING.fieldOf("moduleName").forGetter(ModuleConfig::moduleName),
-                Codec.unboundedMap(Codec.STRING, Codec.STRING).fieldOf("settingValues").forGetter(config -> {
-                    Map<String, String> stringMap = new HashMap<>();
-                    config.settingValues().forEach((key, value) -> stringMap.put(key, value.toString()));
-                    return stringMap;
-                })
-        ).apply(instance, (name, settingMap) -> {
-            Map<String, Object> objectMap = new HashMap<>(settingMap);
-            return new ModuleConfig(name, objectMap);
-        }));
-
-        public ModuleConfig(String moduleName, Map<String, Object> settingValues) {
-            this.moduleName = moduleName;
-            this.settingValues = new HashMap<>(settingValues);
-        }
+    record ModuleConfig(String moduleName, NbtCompound settings) {
+        public static final Codec<ModuleConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(Codec.STRING.fieldOf("name").forGetter(ModuleConfig::moduleName), NbtCompound.CODEC.fieldOf("settings").forGetter(ModuleConfig::settings)).apply(instance, ModuleConfig::new));
     }
 }
