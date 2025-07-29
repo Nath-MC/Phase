@@ -146,9 +146,7 @@ public final class IOManager {
      */
     public static void shutdown(MinecraftClient ignored) {
         try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
-            executorService.submit(IOManager::saveAllModules).get();
-        } catch (Exception e) {
-            logger.error("Error while saving module configurations during shutdown", e);
+            executorService.submit(IOManager::saveAllModules);
         }
     }
 
