@@ -9,7 +9,7 @@ import com.purpynaxx.phase.events.interfaces.world.WorldTick;
 import com.purpynaxx.phase.events.network.PacketEvent;
 import com.purpynaxx.phase.helpers.render.Renderer;
 import com.purpynaxx.phase.io.IOManager;
-import com.purpynaxx.phase.mixins.accessors.TitleScreenMixin;
+import com.purpynaxx.phase.mixins.accessors.TitleScreenBackgroundFadeAccessor;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.modules.visuals.GUI;
@@ -177,7 +177,7 @@ public class EventManager {
 
         // Register screen events
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof TitleScreenMixin titleScreen && titleScreen.getDoBackgroundFade()
+            if (screen instanceof TitleScreenBackgroundFadeAccessor titleScreen && titleScreen.getDoBackgroundFade()
                     && modules.isModuleActive(GUI.class)) {
                 titleScreen.setDoBackgroundFade(false);
             }

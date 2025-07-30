@@ -5,7 +5,7 @@
   "client": [
     "ClientConnectionMixin",
     "accessors.PlayerMoveC2SPacketAccessor",
-    "accessors.TitleScreenMixin"
+    "accessors.TitleScreenBackgroundFadeAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
