@@ -12,21 +12,13 @@ import java.util.*;
 
 import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
 import static com.purpynaxx.phase.Phase.LOGGER;
-import static java.lang.reflect.Modifier.isAbstract;
 
 public class Modules {
 
     private static final Modules INSTANCE = new Modules();
-
     private static final Categories categories = Categories.getInstance();
-
-    private final Set<Module> modules = new HashSet<>();
-
-    private final Map<Class<? extends Module>, Module> moduleByClassMap = new HashMap<>();
-
+    private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
     private boolean registered;
-
-    private int failedInstantiation;
 
     private Modules() {}
 
@@ -44,24 +36,25 @@ public class Modules {
         if (!moduleClasses.isEmpty()) {
 
             for (Class<? extends Module> moduleClass : moduleClasses) {
-                try {
-                    if (isAbstract(moduleClass.getModifiers())) continue;
 
+                try {
                     Constructor<? extends Module> constructor = moduleClass.getDeclaredConstructor();
                     constructor.setAccessible(true);
-                    Module module = constructor.newInstance();
-                    add(moduleClass, module);
-                } catch (Exception e) {
-                    onFail(moduleClass.getSimpleName(), e);
-                }
-            }
 
-            if (IS_DEV_ENVIRONMENT) {
-                if (this.failedInstantiation == 0) {
-                    LOGGER.info("{} modules were successfully initialized.", this.modules.size());
-                } else {
-                    LOGGER.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
+                    Module module = constructor.newInstance();
+
+                    this.modules.put(moduleClass, module);
+                    categories.submit(module);
+
+                    if (IS_DEV_ENVIRONMENT) {
+                        LOGGER.info("{} has been registered.", moduleClass.getSimpleName());
+                    }
+
+                } catch (Exception e) {
+                    String message = String.format("Failed to instantiate module: %s", moduleClass.getSimpleName());
+                    LOGGER.error(message, e);
                 }
+
             }
 
             try {
@@ -69,30 +62,20 @@ public class Modules {
             } catch (Exception e) {
                 LOGGER.error("Failed to load module configurations", new RuntimeException(e));
             }
-        } else LOGGER.error("No module classes found.");
+
+        } else {
+            LOGGER.warn("No module have been discovered.");
+        }
 
         this.registered = true;
     }
 
-    private void add(Class<? extends Module> clazz, Module m) {
-        this.moduleByClassMap.put(clazz, m);
-        this.modules.add(m);
-        categories.submit(m);
-        if (IS_DEV_ENVIRONMENT) LOGGER.info("{} has been registered.", clazz.getSimpleName());
-    }
-
-    private void onFail(String name, Exception e) {
-        String message = String.format("Failed to instantiate module: %s", name);
-        LOGGER.error(message, e);
-        this.failedInstantiation++;
-    }
-
-    public @UnmodifiableView Set<Module> getModules() {
-        return Collections.unmodifiableSet(modules);
+    public @UnmodifiableView Collection<Module> getModules() {
+        return Collections.unmodifiableCollection(modules.values());
     }
 
     public <T extends Module> T getModule(@NotNull Class<T> clazz) {
-        return clazz.cast(moduleByClassMap.get(clazz));
+        return clazz.cast(modules.get(clazz));
     }
 
     public <T extends Module> boolean isModuleActive(Class<T> clazz) {
