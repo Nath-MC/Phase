@@ -239,9 +239,10 @@ public final class IOManager {
         NbtCompound settingsCompound = config.settings();
 
         for (String settingId : settingsCompound.getKeys()) {
-            Setting<?> setting = modules.getSetting(module, settingId);
+            Optional<Setting<?>> optional = modules.getSetting(module, settingId);
 
-            if (setting != null) {
+            if (optional.isPresent()) {
+                Setting<?> setting = optional.get();
                 NbtElement nbtValue = settingsCompound.get(settingId);
 
                 if (nbtValue != null) {

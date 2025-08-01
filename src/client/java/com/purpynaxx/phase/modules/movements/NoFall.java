@@ -347,7 +347,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
                                                       .ticksToLive(200)
                                                       .debug(true)
                                                       .build();
-                    renderer.addRenderable(modules.getModule(NoFall.class), faceOverlay);
+                    renderer.addRenderable(modules.getModule(NoFall.class).orElseThrow(), faceOverlay);
                 }
 
             } else {

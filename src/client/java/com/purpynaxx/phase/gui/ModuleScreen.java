@@ -17,10 +17,7 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.purpynaxx.phase.Phase.LOGGER;
 
@@ -155,11 +152,12 @@ public class ModuleScreen extends Screen {
         this.saveStates();
         this.client.setScreen(this.parent);
 
-        Module GUIModule = modules.getModule(GUI.class);
-        boolean currentState = GUIModule.isActive();
+        Optional<GUI> optional = modules.getModule(GUI.class);
+        GUI module = optional.orElseThrow();
+        boolean currentState = module.isActive();
 
         if (currentState) {
-            GUIModule.toggle();
+            module.toggle();
         }
     }
 

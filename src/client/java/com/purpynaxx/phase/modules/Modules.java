@@ -103,7 +103,7 @@ public class Modules {
     }
 
     public Optional<Setting<?>> getSetting(Module module, String id) {
-        if (module == null || id == null || id.isEmpty()) return null;
+        if (module == null || id == null || id.isEmpty()) return Optional.empty();
 
         return module.getSettings()
                      .stream()
