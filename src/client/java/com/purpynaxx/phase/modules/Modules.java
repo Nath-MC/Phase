@@ -3,7 +3,6 @@ package com.purpynaxx.phase.modules;
 import com.purpynaxx.phase.io.IOManager;
 import com.purpynaxx.phase.settings.Setting;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
@@ -76,32 +75,30 @@ public class Modules {
         return Collections.unmodifiableCollection(modules.values());
     }
 
-    public <T extends Module> T getModule(@NotNull Class<T> clazz) {
-        return clazz.cast(modules.get(clazz));
-    }
-
     public <T extends Module> boolean isModuleActive(Class<T> clazz) {
         if (clazz == null) return false;
-        T module = this.getModule(clazz);
-        if (module != null) return module.isActive();
-        return false;
+        Optional<T> optional = getModule(clazz);
+        return optional.map(Module::isActive).orElse(false);
+
+    }
+
+    public <T extends Module> Optional<T> getModule(@NotNull Class<T> clazz) {
+        return Optional.ofNullable(clazz.cast(modules.get(clazz)));
     }
 
     public <T extends Module> void toggleModule(Class<T> clazz) {
         if (clazz == null) return;
-        T module = this.getModule(clazz);
-        if (module != null) module.toggle();
+        Optional<T> optional = getModule(clazz);
+        optional.ifPresent(Module::toggle);
     }
 
-    public @Nullable Setting<?> getSetting(Module module, String id) {
+    public Optional<Setting<?>> getSetting(Module module, String id) {
         if (module == null || id == null || id.isEmpty()) return null;
 
-        Optional<Setting<?>> setting = module.getSettings()
-                .stream()
-                .filter(s -> s.getId().equalsIgnoreCase(id))
-                .findFirst();
-
-        return setting.orElse(null);
+        return module.getSettings()
+                     .stream()
+                     .filter(s -> s.getId().equalsIgnoreCase(id))
+                     .findFirst();
     }
 
 }
