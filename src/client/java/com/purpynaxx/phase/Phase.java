@@ -1,5 +1,6 @@
 package com.purpynaxx.phase;
 
+import com.purpynaxx.phase.commands.Commands;
 import com.purpynaxx.phase.events.EventManager;
 import com.purpynaxx.phase.modules.Modules;
 import net.fabricmc.api.ClientModInitializer;
@@ -40,6 +41,9 @@ public class Phase implements ClientModInitializer {
 
         // Discover and register modules
         Modules.getInstance().init();
+
+        //Discover and register commands
+        Commands.getInstance().init();
 
         // Register events
         EventManager.getInstance().init();

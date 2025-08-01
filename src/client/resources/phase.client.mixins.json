@@ -3,6 +3,7 @@
   "package": "com.purpynaxx.phase.mixins",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ChatHudMixin",
     "ClientConnectionMixin",
     "accessors.PlayerMoveC2SPacketAccessor",
     "accessors.TitleScreenBackgroundFadeAccessor"

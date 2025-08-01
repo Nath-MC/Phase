@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.events;
 
+import com.purpynaxx.phase.commands.Commands;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.events.interfaces.world.WorldChunkEvent;
@@ -16,6 +17,7 @@ import com.purpynaxx.phase.render.Renderer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -39,19 +41,16 @@ import static com.purpynaxx.phase.Phase.keyBinding;
 public class EventManager {
 
     private static final Modules modules = Modules.getInstance();
-
     private static final MinecraftClient client = MinecraftClient.getInstance();
-
     private static final Logger logger = LoggerFactory.getLogger("Phase/EventManager");
-
     private static final Set<Class<? extends Screen>> ignoredScreens = Set.of(
             MessageScreen.class,
             LevelLoadingScreen.class,
             ProgressScreen.class,
             DownloadingTerrainScreen.class
     );
-
     private static final Renderer renderer = Renderer.getInstance();
+    private static final Commands commands = Commands.getInstance();
 
     private EventManager() {}
 
@@ -212,6 +211,7 @@ public class EventManager {
             renderer.clear();
         });
 
+        ClientSendMessageEvents.ALLOW_CHAT.register(commands::onMessage);
 
         WorldRenderEvents.END.register(worldRenderContext -> Renderer.positionMatrixAndRender(worldRenderContext, () -> renderer.render(worldRenderContext)));
 
