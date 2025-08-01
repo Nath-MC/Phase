@@ -20,6 +20,7 @@ public class Modules {
     private static final Categories categories = Categories.getInstance();
     private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
     private boolean registered;
+    private int failedInstantiation;
 
     private Modules() {}
 
@@ -54,8 +55,17 @@ public class Modules {
                 } catch (Exception e) {
                     String message = String.format("Failed to instantiate module: %s", moduleClass.getSimpleName());
                     LOGGER.error(message, e);
+                    failedInstantiation++;
                 }
 
+            }
+
+            if (IS_DEV_ENVIRONMENT) {
+                if (this.failedInstantiation == 0) {
+                    LOGGER.info("{} modules were successfully initialized.", this.modules.size());
+                } else {
+                    LOGGER.info("{} modules were initialized. {} failed.", this.modules.size(), this.failedInstantiation);
+                }
             }
 
             try {
