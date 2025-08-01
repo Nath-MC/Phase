@@ -6,15 +6,17 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.util.*;
 
 import static com.purpynaxx.phase.Phase.IS_DEV_ENVIRONMENT;
-import static com.purpynaxx.phase.Phase.LOGGER;
 
 public class Modules {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("Phase/Modules");
     private static final Modules INSTANCE = new Modules();
     private static final Categories categories = Categories.getInstance();
     private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
