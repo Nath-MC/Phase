@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.helpers.render;
+package com.purpynaxx.phase.render;
 
 public enum DrawMode {
     FILL,

@@ -1,6 +1,6 @@
 package com.purpynaxx.phase.modules;
 
-import com.purpynaxx.phase.helpers.render.Renderer;
+import com.purpynaxx.phase.render.Renderer;
 import com.purpynaxx.phase.settings.BooleanSetting;
 import com.purpynaxx.phase.settings.Setting;
 import net.minecraft.client.MinecraftClient;

@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.helpers.render;
+package com.purpynaxx.phase.render;
 
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;

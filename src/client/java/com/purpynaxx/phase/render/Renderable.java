@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.helpers.render;
+package com.purpynaxx.phase.render;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 

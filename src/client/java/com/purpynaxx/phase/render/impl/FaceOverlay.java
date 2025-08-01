@@ -1,6 +1,6 @@
-package com.purpynaxx.phase.helpers.render.impl;
+package com.purpynaxx.phase.render.impl;
 
-import com.purpynaxx.phase.helpers.render.Renderable;
+import com.purpynaxx.phase.render.Renderable;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
