@@ -16,6 +16,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -109,11 +110,21 @@ public class PathExecutor {
     }
 
     public static void stop() {
-        if (calculating.getAndSet(false))
-            task.cancel(false);
+        boolean calculating = PathExecutor.calculating.getAndSet(false);
+        boolean executing = currentPathExecutor != null;
 
-        if (currentPathExecutor != null)
+        if (calculating) {
+            task.cancel(false);
+            ChatHelper.send("§cPath calculation has been cancelled.");
+        }
+
+        if (executing) {
             currentPathExecutor.clear();
+            ChatHelper.send("§cPath execution has been cancelled.");
+        }
+
+        if (!executing && !calculating)
+            ChatHelper.send("§cNothing has been canceled.");
     }
 
     public void onChunkLoaded() {
@@ -143,11 +154,15 @@ public class PathExecutor {
             float timeTaken = (System.currentTimeMillis() - current) / 1000f;
 
             if (throwable != null) {
-                String cause = throwable.getCause() != null ? throwable.getCause().getClass().getSimpleName() : throwable.getClass().getSimpleName();
-                ChatHelper.send(String.format("§cAn error occurred during path calculation. (%s)", cause));
+                Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
 
-                if (currentPathExecutor != null) currentPathExecutor.clear();
+                if (throwable instanceof CancellationException) return;
+
+                ChatHelper.send(String.format("§cAn error occurred during path calculation. (%s)", cause.getClass().getSimpleName()));
                 LOGGER.error("An exception occurred during path calculation:", throwable);
+
+                if (currentPathExecutor != null)
+                    currentPathExecutor.clear();
             } else if (pathOptional != null && pathOptional.isPresent() && !pathOptional.get().isEmpty()) {
 
                 List<Node> newPath = pathOptional.get();
