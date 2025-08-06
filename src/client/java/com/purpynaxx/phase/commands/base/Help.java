@@ -57,7 +57,8 @@ public class Help implements Command {
             stringBuilder.append("\n§7> §r")
                          .append(command.getUsage())
                          .append(" - §o")
-                         .append(command.getDescription().getString());
+                         .append(command.getDescription().getString())
+                         .append("\n");
         }
 
         String message = stringBuilder.toString();
