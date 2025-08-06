@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.mixins;
 
+import com.purpynaxx.phase.helpers.pathfinding.PathExecutor;
 import com.purpynaxx.phase.helpers.player.PlayerHelper;
 import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.modules.movements.NoRotation;
@@ -24,10 +25,9 @@ public class MouseMixin {
             float yaw = PlayerHelper.getCameraYaw() + yawDelta;
             float pitch = Math.clamp(PlayerHelper.getCameraPitch() + pitchDelta, -90, 90);
             PlayerHelper.setCameraRotation(yaw, pitch);
-            return;
+        } else if (PathExecutor.getCurrentPathExecutor().isEmpty()) {
+            instance.changeLookDirection(cursorDeltaX, cursorDeltaY);
         }
-
-        instance.changeLookDirection(cursorDeltaX, cursorDeltaY);
     }
 
 }
