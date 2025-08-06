@@ -14,12 +14,11 @@ public final class PlayerHelper {
     /**
      * Sets the player's rotation (yaw and pitch) to face a specific Vec3d.
      *
-     * @param player   The player object
      * @param position The position to face
      * @param side     The side to apply the rotation to (client, server, or both)
      */
-    public static void lookAt(ClientPlayerEntity player, Vec3d position, Side side) {
-        if (player == null) return;
+    public static void lookAt(Vec3d position, Side side) {
+        updatePlayer();
         Vec3d eyePos = player.getEyePos();
 
         double diffX = position.x - eyePos.x;
@@ -31,23 +30,78 @@ public final class PlayerHelper {
         float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
         float pitch = (float) -Math.toDegrees(Math.atan2(diffY, horizontalDistance));
 
-        setRotation(player, yaw, pitch, side);
+        setRotation(yaw, pitch, side);
+    }
+
+    private static void updatePlayer() {
+        if (player != client.player) player = client.player;
+        if (player == null) throw new IllegalStateException();
+    }
+
+    /**
+     * Sets the player's rotation (yaw and pitch) to the specified values.
+     *
+     * @param yaw    The target yaw angle
+     * @param pitch  The target pitch angle
+     * @param side   The side to apply the rotation to (client, server, or both)
+     */
+    public static void setRotation(float yaw, float pitch, Side side) {
+        updatePlayer();
+
+        yaw = MathHelper.wrapDegrees(yaw);
+        pitch = MathHelper.clamp(MathHelper.wrapDegrees(pitch), -90.0F, 90.0F);
+
+        if (side != Side.SERVER) { // side == CLIENT || side == BOTH
+            player.setYaw(yaw);
+            player.setPitch(pitch);
+            refresh();
+        }
+
+        if (side != Side.CLIENT) { // side == SERVER || side == BOTH
+            player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, player.isOnGround(), player.horizontalCollision));
+        }
+    }
+
+    private static void refresh() {
+        updatePlayer();
+        Vec3d pos = player.getPos();
+        float yaw = player.getYaw();
+        float pitch = player.getPitch();
+        player.refreshPositionAndAngles(pos, yaw, pitch);
+    }
+
+    /**
+     * Sets the player's rotation (yaw) to face a specific Vec3d without changing the pitch.
+     *
+     * @param position The position to face
+     * @param side     The side to apply the rotation to (client, server, or both)
+     * @param pitch    The pitch angle to maintain
+     */
+    public static void lookAtNoPitch(Vec3d position, Side side, float pitch) {
+        updatePlayer();
+        Vec3d eyePos = player.getEyePos();
+
+        double diffX = position.x - eyePos.x;
+        double diffZ = position.z - eyePos.z;
+
+        float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
+
+        setRotation(yaw, pitch, side);
     }
 
     /**
      * Updates the player's position to the specified coordinates.
      *
-     * @param player The player object
-     * @param pos    The target position
-     * @param side   The side to apply the position update to (client, server, or both)
+     * @param pos  The target position
+     * @param side The side to apply the position update to (client, server, or both)
      */
-    public static void setPosition(ClientPlayerEntity player, Vec3d pos, Side side) {
-        if (player == null) return;
+    public static void setPosition(Vec3d pos, Side side) {
+        updatePlayer();
         if (player.getPos().equals(pos)) return;
 
         if (side != Side.SERVER) { // side == CLIENT || side == BOTH
             player.setPosition(pos);
-            refresh(player);
+            refresh();
         }
 
         if (side != Side.CLIENT) { // side == SERVER || side == BOTH
@@ -56,47 +110,20 @@ public final class PlayerHelper {
     }
 
     /**
-     * Sets the player's rotation (yaw and pitch) to the specified values.
-     *
-     * @param player The player object
-     * @param yaw    The target yaw angle
-     * @param pitch  The target pitch angle
-     * @param side   The side to apply the rotation to (client, server, or both)
-     */
-    public static void setRotation(ClientPlayerEntity player, float yaw, float pitch, Side side) {
-        if (player == null) return;
-
-        yaw = MathHelper.wrapDegrees(yaw);
-        pitch = MathHelper.clamp(MathHelper.wrapDegrees(pitch), -90.0F, 90.0F);
-
-        if (side != Side.SERVER) { // side == CLIENT || side == BOTH
-            player.setYaw(yaw);
-            player.setPitch(pitch);
-            refresh(player);
-        }
-
-        if (side != Side.CLIENT) { // side == SERVER || side == BOTH
-            player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, player.isOnGround(), player.horizontalCollision));
-        }
-    }
-
-    /**
      * Synchronizes the player's current position with the server.
      *
-     * @param player The player object
      */
-    public static void syncPosition(ClientPlayerEntity player) {
-        if (player == null) return;
+    public static void syncPosition() {
+        updatePlayer();
         player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(player.getPos(), player.isOnGround(), player.horizontalCollision));
     }
 
     /**
      * Synchronizes the player's current rotation (yaw and pitch) with the server.
      *
-     * @param player The player object
      */
-    public static void syncRotation(ClientPlayerEntity player) {
-        if (player == null) return;
+    public static void syncRotation() {
+        updatePlayer();
 
         float yaw = player.getYaw();
         float pitch = player.getPitch();
@@ -107,11 +134,9 @@ public final class PlayerHelper {
     /**
      * Synchronizes the player's full position and rotation with the server.
      *
-     * @param player The player object
      */
-    public static void syncFull(ClientPlayerEntity player) {
-        if (player == null) return;
-
+    public static void syncFull() {
+        updatePlayer();
         Vec3d pos = player.getPos();
         float yaw = player.getYaw();
         float pitch = player.getPitch();
@@ -121,9 +146,8 @@ public final class PlayerHelper {
         player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(pos, yaw, pitch, onGround, horizontalCollision));
     }
 
-    public static boolean canTakeFallDamage(ClientPlayerEntity player) {
-        if (player == null) return false;
-
+    public static boolean canTakeFallDamage() {
+        updatePlayer();
         return (player.getGameMode().isSurvivalLike())
                 && !player.isSleeping()
                 && !player.isGliding()
