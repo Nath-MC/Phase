@@ -15,16 +15,14 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
 import java.awt.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalDouble;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -272,6 +270,32 @@ public final class Renderer {
 
             ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
         }
+    }
+
+    /**
+     * Draws a line in the world from start positon to end positon with the specified color.
+     *
+     * @param renderContext The current world render context.
+     * @param start         The start position of the line.
+     * @param end           The end position of the line.
+     * @param color         The color of the line.
+     */
+    public void drawLine(WorldRenderContext renderContext, Vec3d start, Vec3d end, Color color, boolean depthTest) {
+        Matrix4f matrix = renderContext.matrixStack().peek().getPositionMatrix();
+        Vec3d cameraPos = renderContext.camera().getPos();
+
+        start = start.subtract(cameraPos);
+        end = end.subtract(cameraPos);
+
+
+        RenderLayer layer = depthTest ? Layers.LINES_LAYER : Layers.OVERLAY_LINES_LAYER;
+        VertexConsumer vertexConsumer = renderContext.consumers().getBuffer(layer);
+
+        line(matrix, vertexConsumer, color,
+                (float) start.x, (float) start.y, (float) start.z,
+                (float) end.x, (float) end.y, (float) end.z);
+
+        ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
     }
 
     /**

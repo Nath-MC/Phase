@@ -1,5 +1,6 @@
 package com.purpynaxx.phase.helpers.player;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
@@ -10,6 +11,12 @@ import net.minecraft.util.math.Vec3d;
  * Utility class with helper methods for player-related operations.
  */
 public final class PlayerHelper {
+
+    private static final MinecraftClient client = MinecraftClient.getInstance();
+    private static ClientPlayerEntity player;
+
+    private static float cameraYaw;
+    private static float cameraPitch;
 
     /**
      * Sets the player's rotation (yaw and pitch) to face a specific Vec3d.
@@ -158,12 +165,34 @@ public final class PlayerHelper {
                 && player.getVelocity().y < 0;
     }
 
-    private static void refresh(ClientPlayerEntity player) {
-        Vec3d pos = player.getPos();
+    public static float getCameraYaw() {
+        return cameraYaw;
+    }
+
+    public static float getCameraPitch() {
+        return cameraPitch;
+    }
+
+    public static void resetCameraRotation() {
+        updatePlayer();
         float yaw = player.getYaw();
         float pitch = player.getPitch();
+        setCameraRotation(yaw, pitch);
+    }
 
-        player.refreshPositionAndAngles(pos, yaw, pitch);
+    public static void setCameraRotation(float yaw, float pitch) {
+        cameraYaw = yaw;
+        cameraPitch = pitch;
+    }
+
+    public static void resetInputs() {
+        updatePlayer();
+        client.options.forwardKey.reset();
+        client.options.backKey.reset();
+        client.options.rightKey.reset();
+        client.options.leftKey.reset();
+        client.options.jumpKey.reset();
+        client.options.sneakKey.reset();
     }
 
     public enum Side {

@@ -8,6 +8,7 @@ import com.purpynaxx.phase.events.interfaces.world.WorldConnectivity;
 import com.purpynaxx.phase.events.interfaces.world.WorldRender;
 import com.purpynaxx.phase.events.interfaces.world.WorldTick;
 import com.purpynaxx.phase.events.network.PacketEvent;
+import com.purpynaxx.phase.helpers.pathfinding.PathExecutor;
 import com.purpynaxx.phase.io.IOManager;
 import com.purpynaxx.phase.mixins.accessors.TitleScreenBackgroundFadeAccessor;
 import com.purpynaxx.phase.modules.Module;
@@ -192,6 +193,7 @@ public class EventManager {
             });
         });
 
+        ClientTickEvents.START_CLIENT_TICK.register(client -> PathExecutor.tick());
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
 
@@ -200,10 +202,12 @@ public class EventManager {
                 modules.toggleModule(GUI.class);
             }
 
-            // Handle renderer tick
+            // Tick renderables
             renderer.tick();
 
         });
+
+        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> PathExecutor.getCurrentPathExecutor().ifPresent(PathExecutor::onChunkLoaded));
 
 
         ClientPlayConnectionEvents.DISCONNECT.register((clientPlayNetworkHandler, minecraftClient) -> {
