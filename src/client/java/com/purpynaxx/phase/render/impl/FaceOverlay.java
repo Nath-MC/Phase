@@ -15,7 +15,7 @@ public class FaceOverlay extends Renderable {
     private FaceOverlay(Builder builder) {
         super(builder);
         this.box = getBox(
-                builder.blockPos.orElseThrow(),
+                builder.blockPos.orElseThrow(() -> new IllegalArgumentException("BlockPos cannot be empty")),
                 builder.direction.orElse(Direction.UP)
         );
     }
@@ -65,10 +65,6 @@ public class FaceOverlay extends Renderable {
 
         @Override
         public FaceOverlay build() {
-            if (blockPos.isEmpty()) {
-                throw new IllegalArgumentException("BlockPos cannot be empty");
-            }
-
             return new FaceOverlay(this);
         }
 
