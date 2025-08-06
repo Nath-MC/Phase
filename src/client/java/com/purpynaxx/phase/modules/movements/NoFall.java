@@ -2,7 +2,7 @@ package com.purpynaxx.phase.modules.movements;
 
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
-import com.purpynaxx.phase.helpers.entity.Player;
+import com.purpynaxx.phase.helpers.player.PlayerHelper;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.render.DrawMode;
@@ -92,7 +92,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
         @Override
         public void onPacket(net.minecraft.network.packet.Packet<?> packet, CallbackInfo event) {
-            if (packet instanceof PlayerMoveC2SPacket movePacket && Player.canTakeFallDamage(client.player) && !movePacket.isOnGround() && client.player.getVelocity().y < 0) {
+            if (packet instanceof PlayerMoveC2SPacket movePacket && PlayerHelper.canTakeFallDamage() && !movePacket.isOnGround() && client.player.getVelocity().y < 0) {
                 ((PlayerMoveC2SPacketAccessor) movePacket).setOnGround(true);
             }
         }
@@ -130,7 +130,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
         @Override
         public void onTick() {
-            boolean isFalling = Player.canTakeFallDamage(client.player);
+            boolean isFalling = PlayerHelper.canTakeFallDamage();
 
             if (isFalling && !placed) {
 
@@ -310,9 +310,9 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
             // Look at and position ourselves over the block we're going to place on
             Vec3d target = result.up().toBottomCenterPos();
             Vec3d placementPos = new Vec3d(target.getX(), client.player.getY(), target.getZ());
-            Player.setPosition(client.player, placementPos, Player.Side.CLIENT);
-            Player.lookAt(client.player, target, Player.Side.CLIENT);
-            Player.syncFull(client.player);
+            PlayerHelper.setPosition(placementPos, PlayerHelper.Side.CLIENT);
+            PlayerHelper.lookAt(target, PlayerHelper.Side.CLIENT);
+            PlayerHelper.syncFull();
 
             client.player.getInventory().setSelectedSlot(lastFoundItemSlot);
 
@@ -359,13 +359,13 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
         private void restoreStates(int slot, float yaw, float pitch, Vec3d position, Vec3d velocity) {
             client.player.getInventory().setSelectedSlot(slot);
             client.player.setVelocity(velocity.x, client.player.getVelocity().y, velocity.z);
-            Player.setRotation(client.player, yaw, pitch, Player.Side.CLIENT);
-            Player.setPosition(client.player, new Vec3d(position.x, client.player.getY(), position.z), Player.Side.CLIENT);
-            Player.syncFull(client.player);
+            PlayerHelper.setRotation(yaw, pitch, PlayerHelper.Side.CLIENT);
+            PlayerHelper.setPosition(new Vec3d(position.x, client.player.getY(), position.z), PlayerHelper.Side.CLIENT);
+            PlayerHelper.syncFull();
         }
 
         private boolean pickUp() {
-            Player.lookAt(client.player, waterPos, Player.Side.CLIENT);
+            PlayerHelper.lookAt(waterPos, PlayerHelper.Side.CLIENT);
 
             if (lastFoundItem == Items.WATER_BUCKET || lastFoundItem == Items.POWDER_SNOW_BUCKET) { // Don't try to pick up block(s)
                 ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);

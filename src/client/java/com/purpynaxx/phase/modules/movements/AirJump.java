@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.modules.movements;
 
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
-import com.purpynaxx.phase.helpers.entity.Player;
+import com.purpynaxx.phase.helpers.player.PlayerHelper;
 import com.purpynaxx.phase.modules.Module;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -30,7 +30,7 @@ public class AirJump extends Module implements ClientTick.AFTER {
             Vec3d position = client.player.getPos();
             double y = Math.floor(position.y);
 
-            Player.setPosition(client.player, new Vec3d(position.x, y, position.z), Player.Side.SERVER);
+            PlayerHelper.setPosition(new Vec3d(position.x, y, position.z), PlayerHelper.Side.SERVER);
             client.player.jump();
         } else if (wasPressed) {
             wasPressed = false;
