@@ -39,7 +39,7 @@ public final class Renderer {
     private static final Renderer INSTANCE = new Renderer();
     private static final Modules modules = Modules.getInstance();
 
-    private final Map<Module, List<Renderable>> renderablesByModuleMap = new ConcurrentHashMap<>();
+    private final Map<Object, Set<Renderable>> renderablesByModuleMap = new ConcurrentHashMap<>();
 
     private Renderer() {}
 
@@ -62,20 +62,37 @@ public final class Renderer {
     /**
      * Adds a Renderable object to the render queue.
      *
-     * @param module The module instance which own the renderable
+     * @param instance The instance which owns the renderable.
      * @param renderable The Renderable object to be added.
      */
-    public void addRenderable(Module module, Renderable renderable) {
-        if (renderablesByModuleMap.putIfAbsent(module, new CopyOnWriteArrayList<>()) != null) {
-            getRenderables(module).orElseThrow().removeIf(existing -> existing.equals(renderable));
-        }
-        getRenderables(module).orElseThrow().add(renderable);
+    public void addRenderable(Object instance, Renderable renderable) {
+        renderablesByModuleMap.putIfAbsent(instance, new CopyOnWriteArraySet<>());
+        getRenderablesOf(instance).orElseThrow().add(renderable);
     }
 
-    private void forAllRenderables(Consumer<Renderable> consumer) {
-        for (List<Renderable> renderables : renderablesByModuleMap.values())
-            for (Renderable renderable : renderables)
-                consumer.accept(renderable);
+    private Optional<Set<Renderable>> getRenderablesOf(Object instance) {
+        return Optional.ofNullable(renderablesByModuleMap.get(instance));
+    }
+
+    /**
+     * Adds a collection of Renderable objects to the render queue.
+     *
+     * @param instance    The instance which owns the renderables.
+     * @param renderables The collection of Renderable objects to be added.
+     */
+    public void addAll(Object instance, Collection<Renderable> renderables) {
+        renderablesByModuleMap.putIfAbsent(instance, new CopyOnWriteArraySet<>());
+        getRenderablesOf(instance).orElseThrow().addAll(renderables);
+    }
+
+    /**
+     * Removes a Renderable object from the render queue.
+     *
+     * @param instance   The instance which owns the renderable.
+     * @param renderable The Renderable object to be removed.
+     */
+    public void remove(Object instance, Renderable renderable) {
+        getRenderablesOf(instance).ifPresent(renderables -> renderables.remove(renderable));
     }
 
     /**
@@ -85,17 +102,19 @@ public final class Renderer {
         renderablesByModuleMap.clear();
     }
 
+    private void forAllRenderables(Consumer<Renderable> consumer) {
+        for (Set<Renderable> renderables : renderablesByModuleMap.values())
+            for (Renderable renderable : renderables)
+                consumer.accept(renderable);
+    }
+
     /**
      * Clears all renderable objects owned by {@code module}
      *
-     * @param module The module instance
+     * @param instance The instance that owns the renderables
      */
-    public void clear(Module module) {
-        getRenderables(module).ifPresent(List::clear);
-    }
-
-    private Optional<List<Renderable>> getRenderables(Module module) {
-        return Optional.ofNullable(renderablesByModuleMap.get(module));
+    public void clear(Object instance) {
+        getRenderablesOf(instance).ifPresent(Set::clear);
     }
 
     /**
@@ -105,7 +124,7 @@ public final class Renderer {
      * @param filter A predicate which returns {@code true} for renderables to be removed
      */
     public void removeIf(Module module, Predicate<Renderable> filter) {
-        getRenderables(module).ifPresent(renderables -> renderables.removeIf(filter));
+        getRenderablesOf(module).ifPresent(renderables -> renderables.removeIf(filter));
     }
 
     /**

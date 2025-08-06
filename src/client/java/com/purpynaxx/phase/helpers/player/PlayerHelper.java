@@ -1,4 +1,4 @@
-package com.purpynaxx.phase.helpers.entity;
+package com.purpynaxx.phase.helpers.player;
 
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.effect.StatusEffects;
@@ -9,7 +9,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Utility class with helper methods for player-related operations.
  */
-public final class Player {
+public final class PlayerHelper {
 
     /**
      * Sets the player's rotation (yaw and pitch) to face a specific Vec3d.
