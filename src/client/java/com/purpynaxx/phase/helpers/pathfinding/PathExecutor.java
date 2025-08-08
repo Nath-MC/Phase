@@ -1,6 +1,7 @@
 package com.purpynaxx.phase.helpers.pathfinding;
 
 import com.purpynaxx.phase.helpers.chat.ChatHelper;
+import com.purpynaxx.phase.helpers.input.InputUtils;
 import com.purpynaxx.phase.helpers.player.PlayerHelper;
 import com.purpynaxx.phase.render.Renderable;
 import com.purpynaxx.phase.render.Renderer;
@@ -62,6 +63,8 @@ public class PathExecutor {
             lastNodePos = currentNodePos;
         }
         renderer.addAll(this, renderables);
+
+        InputUtils.setAllowMovementKeys(false);
     }
 
     public static void tick() {
@@ -74,7 +77,7 @@ public class PathExecutor {
     }
 
     private void onTick() {
-        if (path == null || path.isEmpty() || currentNodeIndex >= path.size()) {
+        if (currentNodeIndex >= path.size()) {
             onGoalReached();
             return;
         }
@@ -103,6 +106,7 @@ public class PathExecutor {
         renderer.clear(this);
         renderables.clear();
         currentPathExecutor = null;
+        InputUtils.setAllowMovementKeys(true);
     }
 
     public static Optional<PathExecutor> getCurrentPathExecutor() {
