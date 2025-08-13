@@ -39,6 +39,7 @@ import static com.purpynaxx.phase.Phase.keyBinding;
 
 public class EventManager {
 
+    private static final EventManager INSTANCE = new EventManager();
     private static final Modules modules = Modules.getInstance();
     private static final MinecraftClient client = MinecraftClient.getInstance();
     private static final Logger logger = LoggerFactory.getLogger("Phase/EventManager");
@@ -54,7 +55,7 @@ public class EventManager {
     private EventManager() {}
 
     public static EventManager getInstance() {
-        return Holder.INSTANCE;
+        return INSTANCE;
     }
 
     public void init() {
@@ -230,12 +231,6 @@ public class EventManager {
 
     private boolean isReady() {
         return client.player != null && client.player.isLoaded();
-    }
-
-    private static class Holder {
-
-        private static final EventManager INSTANCE = new EventManager();
-
     }
 
 }
