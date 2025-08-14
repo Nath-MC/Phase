@@ -6,8 +6,8 @@
     "CameraMixin",
     "ChatHudMixin",
     "ClientConnectionMixin",
-    "MouseMixin",
-    "accessors.KeyboardMixin",
+    "EntityMixin",
+    "KeyboardMixin",
     "accessors.PlayerMoveC2SPacketAccessor",
     "accessors.TitleScreenBackgroundFadeAccessor"
   ],

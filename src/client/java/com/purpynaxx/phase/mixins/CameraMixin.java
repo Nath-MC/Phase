@@ -1,8 +1,6 @@
 package com.purpynaxx.phase.mixins;
 
-import com.purpynaxx.phase.helpers.player.PlayerHelper;
-import com.purpynaxx.phase.modules.Modules;
-import com.purpynaxx.phase.modules.movements.NoRotation;
+import com.purpynaxx.phase.helpers.player.Rotations;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
@@ -18,23 +16,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class CameraMixin {
 
     @Unique
-    private static final Modules modules = Modules.getInstance();
+    private static final Rotations rotations = Rotations.getInstance();
 
-    @Unique
-    private static boolean aBoolean = true;
-
-    @Inject(method = "update(Lnet/minecraft/world/BlockView;Lnet/minecraft/entity/Entity;ZZF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 1, shift = At.Shift.AFTER))
+    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 1, shift = At.Shift.AFTER))
     private void overrideRotation(BlockView area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
-        if (modules.isModuleActive(NoRotation.class) && focusedEntity instanceof ClientPlayerEntity) {
-            if (aBoolean) {
-                aBoolean = false;
-                PlayerHelper.resetCameraRotation();
+        if (focusedEntity instanceof ClientPlayerEntity) {
+            if (rotations.getShouldOverride()) {
+                float yaw = rotations.getYaw();
+                float pitch = rotations.getPitch();
+                setRotation(yaw, pitch);
             }
-
-            float yaw = PlayerHelper.getCameraYaw();
-            float pitch = PlayerHelper.getCameraPitch();
-            setRotation(yaw, pitch);
-        } else if (focusedEntity instanceof ClientPlayerEntity) aBoolean = true;
+        }
     }
 
     @Shadow

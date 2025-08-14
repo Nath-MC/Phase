@@ -1,7 +1,7 @@
 package com.purpynaxx.phase.helpers.pathfinding.nodes;
 
 import com.purpynaxx.phase.helpers.pathfinding.Node;
-import com.purpynaxx.phase.helpers.player.PlayerHelper;
+import com.purpynaxx.phase.helpers.player.Rotations;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -10,21 +10,24 @@ import org.jetbrains.annotations.Nullable;
 
 public class MovementNode extends Node {
 
+    private static final Rotations rotations = Rotations.getInstance();
+
     public MovementNode(BlockPos pos, int gCost, int hCost, @Nullable Node previousNode) {
         super(pos, gCost, hCost, previousNode);
     }
 
     @Override
     public void execute() {
-        PlayerHelper.lookAtNoPitch(pos.toBottomCenterPos(), PlayerHelper.Side.CLIENT, 0);
+        rotations.submit(Rotations.getYaw(pos.toBottomCenterPos()), 0, () -> {
+            KeyBinding forwardKey = client.options.forwardKey;
+            KeyBinding sprintKey = client.options.sprintKey;
 
-        KeyBinding forwardKey = client.options.forwardKey;
-        KeyBinding sprintKey = client.options.sprintKey;
-        if (!forwardKey.isPressed())
-            forwardKey.setPressed(true);
+            if (!forwardKey.isPressed())
+                forwardKey.setPressed(true);
 
-        if (!sprintKey.isPressed())
-            sprintKey.setPressed(true);
+            if (!sprintKey.isPressed())
+                sprintKey.setPressed(true);
+        });
     }
 
     @Override

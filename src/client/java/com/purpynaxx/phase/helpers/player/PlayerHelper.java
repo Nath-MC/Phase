@@ -15,9 +15,6 @@ public final class PlayerHelper {
     private static final MinecraftClient client = MinecraftClient.getInstance();
     private static ClientPlayerEntity player;
 
-    private static float cameraYaw;
-    private static float cameraPitch;
-
     /**
      * Sets the player's rotation (yaw and pitch) to face a specific Vec3d.
      *
@@ -163,26 +160,6 @@ public final class PlayerHelper {
                 && !player.isInvulnerable()
                 && player.fallDistance > 3.0F
                 && player.getVelocity().y < 0;
-    }
-
-    public static float getCameraYaw() {
-        return cameraYaw;
-    }
-
-    public static float getCameraPitch() {
-        return cameraPitch;
-    }
-
-    public static void resetCameraRotation() {
-        updatePlayer();
-        float yaw = player.getYaw();
-        float pitch = player.getPitch();
-        setCameraRotation(yaw, pitch);
-    }
-
-    public static void setCameraRotation(float yaw, float pitch) {
-        cameraYaw = yaw;
-        cameraPitch = pitch;
     }
 
     public static void resetInputs() {
