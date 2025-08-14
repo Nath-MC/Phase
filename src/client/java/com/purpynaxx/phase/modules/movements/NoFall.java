@@ -3,6 +3,7 @@ package com.purpynaxx.phase.modules.movements;
 import com.purpynaxx.phase.events.interfaces.client.ClientTick;
 import com.purpynaxx.phase.events.interfaces.network.PacketHandler;
 import com.purpynaxx.phase.helpers.player.PlayerHelper;
+import com.purpynaxx.phase.helpers.player.Rotations;
 import com.purpynaxx.phase.mixins.accessors.PlayerMoveC2SPacketAccessor;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.render.DrawMode;
@@ -18,6 +19,7 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.text.Text;
@@ -29,36 +31,33 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Range;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTER {
 
-    private static final Text description = Text.translatable("modules.movements.nofall.description");
+    private static final Text DESCRIPTION = Text.translatable("modules.movements.nofall.description");
 
     private final ListSetting<Mode> mode = new ListSetting.Builder<Mode>()
                                                    .id("mode")
                                                    .name(Text.translatable("settings.screen.cycling.title"))
                                                    .description(Text.translatable("settings.screen.cycling.description", name))
                                                    .module(this)
-                                                   .values(List.of(
-                                                           new Packet(),
-                                                           new MLG()
-                                                   ))
+                                                   .values(Arrays.asList(new PacketMode(), new MLGMode()))
                                                    .build();
 
-
     private NoFall() {
-        super(description);
+        super(DESCRIPTION);
         registerSettings(mode);
     }
 
     @Override
-    public void onPacketSend(net.minecraft.network.packet.Packet<?> packet, CallbackInfo event) {
+    public void onPacketSend(Packet<?> packet, CallbackInfo event) {
         mode.get().onPacket(packet, event);
     }
 
@@ -76,7 +75,7 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
         public abstract void onTick();
 
-        public abstract void onPacket(net.minecraft.network.packet.Packet<?> packet, CallbackInfo event);
+        public abstract void onPacket(Packet<?> packet, CallbackInfo event);
 
         public void onDeactivate() {}
 
@@ -85,14 +84,17 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
     }
 
-    private static class Packet extends Mode {
+    private static class PacketMode extends Mode {
 
         @Override
         public void onTick() {}
 
         @Override
-        public void onPacket(net.minecraft.network.packet.Packet<?> packet, CallbackInfo event) {
-            if (packet instanceof PlayerMoveC2SPacket movePacket && PlayerHelper.canTakeFallDamage() && !movePacket.isOnGround() && client.player.getVelocity().y < 0) {
+        public void onPacket(Packet<?> packet, CallbackInfo event) {
+            if (packet instanceof PlayerMoveC2SPacket movePacket &&
+                        PlayerHelper.canTakeFallDamage() &&
+                        !movePacket.isOnGround() &&
+                        client.player.getVelocity().y < 0) {
                 ((PlayerMoveC2SPacketAccessor) movePacket).setOnGround(true);
             }
         }
@@ -104,123 +106,258 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
 
     }
 
-    private static class MLG extends Mode {
+    private static class MLGMode extends Mode {
 
-        private final Item[] items = new Item[]{
+        private static final Rotations rotations = Rotations.getInstance();
+        private static final List<Item> ITEMS = Arrays.asList(
                 Items.WATER_BUCKET,
                 Items.POWDER_SNOW_BUCKET,
                 Items.SLIME_BLOCK,
                 Items.TWISTING_VINES,
                 Items.COBWEB
-        };
+        );
 
-        private boolean placed = false;
-        private float lastYaw;
-        private float lastPitch;
+        private State currentState = State.IDLE;
+
         private int lastSlot;
+        private int actionTimer;
+        private int placeAttempts;
+
         private Vec3d lastVelocity;
         private Vec3d lastPosition;
+
+        private BlockPos placementPos;
         private BlockHitResult hitResult;
-        private BlockPos result;
-        private Vec3d waterPos;
-        private int pickupTimer;
-        private int tries = 0;
-        private Item lastFoundItem;
-        private int lastFoundItemSlot;
+
+        private Item currentItem;
 
         @Override
         public void onTick() {
-            boolean isFalling = PlayerHelper.canTakeFallDamage();
-
-            if (isFalling && !placed) {
-
-                if (isSafe()) {
-                    return; // as we are about to land on a safe surface
-                }
-
-                // retrieve the most suitable available item from the hotbar
-                if (!findItem()) {
-                    return;
-                }
-
-                if ((client.player.getPos().y - result.getY()) < client.player.getBlockInteractionRange()) {
-                    place();
-                }
-
-            } else if (placed && !isFalling) {
-
-                if (pickupTimer > 0) {
-                    pickupTimer--;
-                } else if (tries < 3) {
-                    if (!pickUp()) {
-                        pickupTimer = 2;
-                        tries++;
-                    }
-                } else {
-                    tries = 0;
-                    pickupTimer = 0;
-                    placed = false;
-                    waterPos = null;
-                    restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);
-                    client.player.sendMessage(Text.translatable("modules.movements.nofall.failed_to_pickup").formatted(Formatting.RED), true);
-                }
+            switch (currentState) {
+                case IDLE:
+                    handleIdleState();
+                    break;
+                case PICKING_UP:
+                    handlePickingUpState();
+                    break;
             }
         }
 
-        private boolean findItem() {
-            for (Item item : items) {
-                int slot = findSlot(item);
+        private void handleIdleState() {
+            if (!PlayerHelper.canTakeFallDamage()) return;
 
-                if (slot == -1) continue;
+            placementPos = findLandingSpot();
+            if (placementPos == null || isLandingSpotSafe(placementPos)) {
+                return;
+            }
 
-                BlockState blockState = client.world.getBlockState(result);
-                if (item == Items.WATER_BUCKET) {
+            currentItem = findAvailableItem(placementPos);
+            if (currentItem == null) {
+                return;
+            }
 
-                    if (blockState.getBlock() instanceof SlabBlock && blockState.get(SlabBlock.TYPE) == SlabType.TOP) {
-                        continue; // the slab will be waterlogged, and we will still take damage
+            if (client.player.getPos().y - placementPos.getY() <= client.player.getBlockInteractionRange()) {
+                startPlacing();
+            }
+        }
+
+        private void startPlacing() {
+            savePlayerState();
+            place();
+        }
+
+        private void place() {
+            // Freeze horizontal movement
+            client.player.setVelocity(0, client.player.getVelocity().y, 0);
+
+            // Center player over the placement block
+            Vec3d targetCenter = placementPos.up().toBottomCenterPos();
+            PlayerHelper.setPosition(new Vec3d(targetCenter.getX(), client.player.getY(), targetCenter.getZ()), PlayerHelper.Side.BOTH);
+
+            int itemSlot = findSlot(currentItem);
+            if (itemSlot == -1) {
+                reset();
+                throw new RuntimeException(); // shouldn't happen
+            }
+            client.player.getInventory().setSelectedSlot(itemSlot);
+
+            rotations.submit(client.player.getYaw(), 90, () -> {
+                int previousCount = client.player.getMainHandStack().getCount();
+                ActionResult actionResult;
+
+                if (currentItem == Items.WATER_BUCKET || currentItem == Items.POWDER_SNOW_BUCKET) {
+                    actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+                } else {
+                    actionResult = client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hitResult);
+                }
+
+                boolean itemUsed = currentItem != client.player.getMainHandStack().getItem() || client.player.getMainHandStack().getCount() < previousCount;
+
+                if (actionResult.isAccepted() && itemUsed) {
+                    currentState = State.PICKING_UP;
+                    actionTimer = 3;
+                    placeAttempts = 0;
+                    renderPlacementOverlay();
+                } else {
+                    restorePlayerState();
+                    reset();
+                }
+            });
+        }
+
+        private void restorePlayerState() {
+            if (lastVelocity == null || lastPosition == null) return;
+            client.player.getInventory().setSelectedSlot(lastSlot);
+            client.player.setVelocity(lastVelocity.x, client.player.getVelocity().y, lastVelocity.z);
+            PlayerHelper.setPosition(new Vec3d(lastPosition.x, client.player.getY(), lastPosition.z), PlayerHelper.Side.BOTH);
+        }
+
+        private void reset() {
+            currentState = State.IDLE;
+            actionTimer = 0;
+            placeAttempts = 0;
+            //            placementPos = null;
+            //            hitResult = null;
+            //            currentItem = null;
+            lastVelocity = null;
+            lastPosition = null;
+        }
+
+        private void renderPlacementOverlay() {
+            if (placementPos != null) {
+                FaceOverlay faceOverlay = new FaceOverlay.Builder()
+                                                  .blockPos(placementPos)
+                                                  .color(new Color(0, 0, 255, 100))
+                                                  .drawMode(DrawMode.FILL)
+                                                  .ticksToLive(200) // 10 seconds
+                                                  .debug(true)
+                                                  .build();
+                renderer.addRenderable(modules.getModule(NoFall.class).orElseThrow(), faceOverlay);
+            }
+        }
+
+        private void savePlayerState() {
+            lastSlot = client.player.getInventory().getSelectedSlot();
+            lastVelocity = client.player.getVelocity();
+            lastPosition = client.player.getPos();
+        }
+
+        @Nullable
+        private BlockPos findLandingSpot() {
+            Vec3d playerEyePos = client.player.getEyePos();
+            Box box = client.player.getBoundingBox();
+            Vec3d[] checkPoints = {
+                    new Vec3d(box.minX, playerEyePos.y, box.minZ),
+                    new Vec3d(box.minX, playerEyePos.y, box.maxZ),
+                    new Vec3d(box.maxX, playerEyePos.y, box.minZ),
+                    new Vec3d(box.maxX, playerEyePos.y, box.maxZ),
+                    playerEyePos
+            };
+
+            BlockPos bestPos = null;
+            int highestY = Integer.MIN_VALUE;
+
+            for (Vec3d startPos : checkPoints) {
+                RaycastContext context = new RaycastContext(
+                        startPos,
+                        startPos.subtract(0, client.player.getBlockInteractionRange(), 0),
+                        RaycastContext.ShapeType.OUTLINE,
+                        RaycastContext.FluidHandling.ANY,
+                        client.player
+                );
+
+                BlockHitResult rayResult = client.world.raycast(context);
+                if (rayResult.getType() == BlockHitResult.Type.BLOCK) {
+                    BlockPos currentPos = rayResult.getBlockPos();
+                    int blockY = currentPos.getY();
+
+                    if (client.world.getBlockState(currentPos).getFluidState().getFluid() != Fluids.EMPTY) {
+                        blockY--; // Adjust for landing on waterlogged blocks
                     }
 
-                    if (blockState.getBlock() instanceof LeavesBlock) {
-                        continue; // waterlogged
+                    if (blockY > highestY) {
+                        highestY = blockY;
+                        bestPos = currentPos;
+                        this.hitResult = rayResult; // Store the hit result for the best position
                     }
+                }
+            }
+            return bestPos;
+        }
 
-                } else if (item == Items.TWISTING_VINES) {
+        private boolean isLandingSpotSafe(BlockPos pos) {
+            if (pos == null) return true; // No ground below, technically "safe" from fall damage for now
+            BlockState blockState = client.world.getBlockState(pos);
+            return blockState.isIn(BlockTags.FALL_DAMAGE_RESETTING) ||
+                           blockState.isOf(Blocks.SLIME_BLOCK) ||
+                           !blockState.getFluidState().isEmpty();
+        }
 
-                    if (blockState.isOpaqueFullCube() && blockState.getBlock() instanceof LeavesBlock) {
+        @Nullable
+        private Item findAvailableItem(BlockPos pos) {
+            BlockState blockState = client.world.getBlockState(pos);
+            for (Item item : ITEMS) {
+                if (findSlot(item) != -1) {
+                    // Item-specific placement validation
+                    if (item == Items.WATER_BUCKET && (blockState.getBlock() instanceof SlabBlock && blockState.get(SlabBlock.TYPE) == SlabType.TOP || blockState.getBlock() instanceof LeavesBlock)) {
                         continue;
                     }
+                    if (item == Items.TWISTING_VINES && (!blockState.isOpaqueFullCube() || blockState.getBlock() instanceof LeavesBlock)) {
+                        continue;
+                    }
+                    return item;
                 }
-
-                lastFoundItem = item;
-                lastFoundItemSlot = slot;
-                return true;
-
             }
-            return false;
+            return null;
         }
 
-        @Range(from = -1, to = 8)
         private int findSlot(Item item) {
             PlayerInventory inventory = client.player.getInventory();
-
             for (int i = 0; i < PlayerInventory.HOTBAR_SIZE; i++) {
                 if (inventory.getStack(i).getItem() == item) {
                     return i;
                 }
             }
-
             return -1;
         }
 
+        private void handlePickingUpState() {
+            if (actionTimer > 0) {
+                actionTimer--;
+                return;
+            }
+
+            if (placeAttempts < 3) {
+                pickUp();
+                actionTimer = 2;
+                placeAttempts++;
+            } else {
+                client.player.sendMessage(Text.translatable("modules.movements.nofall.failed_to_pickup").formatted(Formatting.RED), true);
+                reset();
+            }
+        }
+
+        private void pickUp() {
+            Vec3d pickupTarget = placementPos.up().toBottomCenterPos();
+            rotations.submit(Rotations.getYaw(pickupTarget), Rotations.getPitch(pickupTarget), () -> {
+                if (currentItem == Items.WATER_BUCKET || currentItem == Items.POWDER_SNOW_BUCKET) {
+                    ActionResult actionResult = Objects.requireNonNull(client.interactionManager).interactItem(client.player, Hand.MAIN_HAND);
+                    if (!actionResult.isAccepted()) return; // Failed to pick up, will retry
+                }
+                restorePlayerState();
+                reset();
+            });
+        }
+
         @Override
-        public void onPacket(net.minecraft.network.packet.Packet<?> packet, CallbackInfo event) {}
+        public void onPacket(Packet<?> packet, CallbackInfo event) {}
 
         @Override
         public void onDeactivate() {
-            placed = false;
-            pickupTimer = 0;
-            tries = 0;
-            result = null;
+            if (currentState != State.IDLE) {
+                restorePlayerState();
+            }
+            reset();
         }
 
         @Override
@@ -228,157 +365,9 @@ public class NoFall extends Module implements PacketHandler.OUT, ClientTick.AFTE
             return "MLG";
         }
 
-        private boolean isSafe() {
-            Vec3d[] checks = getVec3ds();
-            int maxY = Integer.MIN_VALUE;
-            BlockHitResult bestResult = null;
-            BlockPos result = null;
-
-            for (Vec3d check : checks) {
-                RaycastContext raycastContext = new RaycastContext(
-                        check,
-                        check.subtract(0, client.player.getBlockInteractionRange(), 0),
-                        RaycastContext.ShapeType.OUTLINE,
-                        RaycastContext.FluidHandling.ANY,
-                        client.player
-                );
-
-                BlockHitResult blockHitResult = client.world.raycast(raycastContext);
-                if (blockHitResult.getType() == BlockHitResult.Type.BLOCK) {
-
-                    int blockY = blockHitResult.getBlockPos().getY();
-                    if (client.world.getBlockState(blockHitResult.getBlockPos())
-                                    .getFluidState()
-                                    .getFluid() != Fluids.EMPTY) {
-                        blockY--; // Prevent taking damage on irregular surfaces
-                    }
-
-                    // Find the highest right block below the player
-                    if (blockY > maxY) {
-                        maxY = blockY;
-                        bestResult = blockHitResult;
-                    }
-                }
-            }
-
-            if (bestResult != null) {
-                hitResult = bestResult;
-                result = bestResult.getBlockPos();
-            }
-
-            this.result = result;
-
-            if (result == null) {
-                return true; // Still falling, stop further checks
-            }
-
-            BlockState blockState = client.world.getBlockState(result);
-
-            // Check if the block we're landing on cancels fall damage
-            return blockState.isIn(BlockTags.FALL_DAMAGE_RESETTING)
-                           || blockState.isOf(Blocks.SLIME_BLOCK)
-                           || (blockState.getFluidState().getFluid() == Fluids.WATER
-                                       || blockState.getFluidState().getFluid() == Fluids.FLOWING_WATER);
-        }
-
-        private Vec3d @NotNull [] getVec3ds() {
-            Vec3d playerEyePos = client.player.getEyePos();
-            Box box = client.player.getBoundingBox();
-
-            // Create check points at the corners of the player's hitbox and center
-            return new Vec3d[]{
-                    new Vec3d(box.minX, playerEyePos.y, box.minZ),
-                    new Vec3d(box.minX, playerEyePos.y, box.maxZ),
-                    new Vec3d(box.maxX, playerEyePos.y, box.minZ),
-                    new Vec3d(box.maxX, playerEyePos.y, box.maxZ),
-                    playerEyePos,
-            };
-        }
-
-        private void place() {
-
-            // Save the current player state
-            Vec3d position = client.player.getPos();
-            float pitch = client.player.getPitch();
-            float yaw = client.player.getYaw();
-            int previousSlot = client.player.getInventory().getSelectedSlot();
-
-            // Freeze horizontal movement temporarily
-            Vec3d velocity = client.player.getVelocity();
-            client.player.setVelocity(0, velocity.y, 0);
-
-            // Look at and position ourselves over the block we're going to place on
-            Vec3d target = result.up().toBottomCenterPos();
-            Vec3d placementPos = new Vec3d(target.getX(), client.player.getY(), target.getZ());
-            PlayerHelper.setPosition(placementPos, PlayerHelper.Side.CLIENT);
-            PlayerHelper.lookAt(target, PlayerHelper.Side.CLIENT);
-            PlayerHelper.syncFull();
-
-            client.player.getInventory().setSelectedSlot(lastFoundItemSlot);
-
-            int previousCount = client.player.getMainHandStack().getCount();
-            ActionResult actionResult;
-
-            if (lastFoundItem == Items.WATER_BUCKET) {
-                actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
-            } else {
-                actionResult = client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hitResult);
-            }
-
-            boolean b = lastFoundItem != client.player.getMainHandStack().getItem();
-            boolean b1 = client.player.getMainHandStack().getCount() < previousCount;
-
-            if (actionResult instanceof ActionResult.Success && (b || b1)) {
-                placed = true;
-                lastYaw = yaw;
-                lastPitch = pitch;
-                lastSlot = previousSlot;
-                lastVelocity = velocity;
-                lastPosition = position;
-                pickupTimer = 3;
-                waterPos = target;
-
-                if (result != null) {
-                    Color color = new Color(0, 0, 255, 100);
-                    FaceOverlay faceOverlay = new FaceOverlay.Builder()
-                                                      .blockPos(result)
-                                                      .color(color)
-                                                      .drawMode(DrawMode.FILL)
-                                                      .ticksToLive(200)
-                                                      .debug(true)
-                                                      .build();
-                    renderer.addRenderable(modules.getModule(NoFall.class).orElseThrow(), faceOverlay);
-                }
-
-            } else {
-                restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);
-            }
-
-        }
-
-        private void restoreStates(int slot, float yaw, float pitch, Vec3d position, Vec3d velocity) {
-            client.player.getInventory().setSelectedSlot(slot);
-            client.player.setVelocity(velocity.x, client.player.getVelocity().y, velocity.z);
-            PlayerHelper.setRotation(yaw, pitch, PlayerHelper.Side.CLIENT);
-            PlayerHelper.setPosition(new Vec3d(position.x, client.player.getY(), position.z), PlayerHelper.Side.CLIENT);
-            PlayerHelper.syncFull();
-        }
-
-        private boolean pickUp() {
-            PlayerHelper.lookAt(waterPos, PlayerHelper.Side.CLIENT);
-
-            if (lastFoundItem == Items.WATER_BUCKET || lastFoundItem == Items.POWDER_SNOW_BUCKET) { // Don't try to pick up block(s)
-                ActionResult actionResult = client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
-
-                if (!actionResult.isAccepted()) {
-                    return false;
-                }
-            }
-
-            placed = false;
-            restoreStates(lastSlot, lastYaw, lastPitch, lastPosition, lastVelocity);
-
-            return true;
+        private enum State {
+            IDLE,
+            PICKING_UP
         }
 
     }
