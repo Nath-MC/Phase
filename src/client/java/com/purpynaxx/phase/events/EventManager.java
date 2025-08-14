@@ -11,7 +11,6 @@ import com.purpynaxx.phase.events.network.PacketEvent;
 import com.purpynaxx.phase.helpers.pathfinding.PathExecutor;
 import com.purpynaxx.phase.helpers.player.Rotations;
 import com.purpynaxx.phase.io.IOManager;
-import com.purpynaxx.phase.mixins.accessors.TitleScreenBackgroundFadeAccessor;
 import com.purpynaxx.phase.modules.Module;
 import com.purpynaxx.phase.modules.Modules;
 import com.purpynaxx.phase.modules.visuals.GUI;
@@ -42,6 +41,7 @@ import static com.purpynaxx.phase.Phase.keyBinding;
 
 public class EventManager {
 
+    private static final EventManager INSTANCE = new EventManager();
     private static final Modules modules = Modules.getInstance();
     private static final MinecraftClient client = MinecraftClient.getInstance();
     private static final Logger logger = LoggerFactory.getLogger("Phase/EventManager");
@@ -58,7 +58,7 @@ public class EventManager {
     private EventManager() {}
 
     public static EventManager getInstance() {
-        return Holder.INSTANCE;
+        return INSTANCE;
     }
 
     public void init() {
@@ -179,10 +179,6 @@ public class EventManager {
 
         // Register screen events
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof TitleScreenBackgroundFadeAccessor titleScreen && titleScreen.getDoBackgroundFade()
-                    && modules.isModuleActive(GUI.class)) {
-                titleScreen.setDoBackgroundFade(false);
-            }
 
             if (ignoredScreens.contains(screen.getClass())) return;
 
@@ -243,12 +239,6 @@ public class EventManager {
 
     private boolean isReady() {
         return client.player != null && client.player.isLoaded();
-    }
-
-    private static class Holder {
-
-        private static final EventManager INSTANCE = new EventManager();
-
     }
 
 }
