@@ -20,55 +20,67 @@ import java.util.Stack;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
+
 
 public class PathExecutor {
 
-    private static final MinecraftClient client = MinecraftClient.getInstance();
     private static final Logger LOGGER = LoggerFactory.getLogger("Phase/PathExecutor");
+
+    private static final MinecraftClient client = MinecraftClient.getInstance();
     private static final Renderer renderer = Renderer.getInstance();
+    private static final AtomicBoolean isCalculating = new AtomicBoolean();
 
-    private static final AtomicBoolean calculating = new AtomicBoolean();
-    private static final AtomicLong lastCalculationTime = new AtomicLong();
+    @Nullable
+    private static PathExecutor currentPathExecutor;
 
-    private static @Nullable PathExecutor currentPathExecutor;
-    private static CompletableFuture<Optional<List<Node>>> task;
+    @Nullable
+    private static CompletableFuture<Optional<List<Node>>> currentTask;
+    private static long lastCalculationStartTime = 0;
 
-    private final Stack<Renderable> renderables = new Stack<>();
-    private final long startTime;
+    private final Stack<Renderable> pathRenderables = new Stack<>();
 
     private Pathfinder pathfinder;
     private List<Node> path;
     private int currentNodeIndex;
 
     private PathExecutor(List<Node> path, Pathfinder pathfinder) {
-        this.startTime = System.currentTimeMillis();
         setPath(path, pathfinder);
     }
 
-    private void setPath(List<Node> newPath, Pathfinder newPathfinder) {
-        renderer.clear(this);
-        this.renderables.clear();
-        this.path = newPath;
-        this.pathfinder = newPathfinder;
-        this.currentNodeIndex = 0;
-
-        Vec3d lastNodePos = null;
-        for (Node node : path.reversed()) {
-            Vec3d currentNodePos = node.getPos().toBottomCenterPos();
-            if (lastNodePos != null) {
-                Line line = new Line.Builder().start(currentNodePos).end(lastNodePos).color(Color.GREEN).build();
-                renderables.push(line);
-            }
-            lastNodePos = currentNodePos;
+    public static void stop() {
+        boolean wasCalculating = false;
+        if (currentTask != null) {
+            currentTask.cancel(true);
+            wasCalculating = true;
         }
-        renderer.addAll(this, renderables);
 
-        InputUtils.setAllowMovementKeys(false);
+        boolean wasExecuting = false;
+        if (currentPathExecutor != null) {
+            currentPathExecutor.clear();
+            wasExecuting = true;
+        }
+
+        if (wasCalculating && wasExecuting)
+            ChatHelper.send("§cPath calculation and execution cancelled.");
+        else if (wasCalculating)
+            ChatHelper.send("§cPath calculation cancelled.");
+        else if (wasExecuting)
+            ChatHelper.send("§cPath execution cancelled.");
+        else
+            ChatHelper.send("§cNothing to cancel.");
+    }
+
+    private void clear() {
+        PlayerHelper.resetInputs();
+        renderer.clear(this);
+        pathRenderables.clear();
+        InputUtils.setAllowMovementKeys(true);
+        currentPathExecutor = null;
     }
 
     public static void tick() {
         if (currentPathExecutor == null) return;
+
         if (client.player == null) {
             currentPathExecutor.clear();
             return;
@@ -85,107 +97,112 @@ public class PathExecutor {
         Node currentNode = path.get(currentNodeIndex);
 
         if (currentNode.isDone()) {
-            currentNodeIndex++;
-            if (!renderables.isEmpty()) {
-                Renderable removed = renderables.pop();
+            if (++currentNodeIndex >= path.size()) {
+                return;
+            }
+
+            currentNode = path.get(currentNodeIndex);
+
+            if (!pathRenderables.isEmpty() && currentNodeIndex > 1) {
+                Renderable removed = pathRenderables.pop();
                 renderer.remove(this, removed);
             }
-            return;
         }
+
         currentNode.execute();
     }
 
     private void onGoalReached() {
-        long timeTaken = System.currentTimeMillis() - startTime;
-        ChatHelper.send(String.format("§cPath reached in %.3fs !", timeTaken / 1000f));
+        ChatHelper.send("§aPath reached !");
         clear();
     }
 
-    private void clear() {
-        PlayerHelper.resetInputs();
-        renderer.clear(this);
-        renderables.clear();
-        currentPathExecutor = null;
-        InputUtils.setAllowMovementKeys(true);
+    public void onChunkLoaded() {
+        if (client.player != null) {
+            findAndExecutePath(client.player.getBlockPos(), this.pathfinder.getEnd());
+        }
     }
 
     public static Optional<PathExecutor> getCurrentPathExecutor() {
         return Optional.ofNullable(currentPathExecutor);
     }
 
-    public static void stop() {
-        boolean calculating = PathExecutor.calculating.getAndSet(false);
-        boolean executing = currentPathExecutor != null;
-
-        if (calculating) {
-            task.cancel(false);
-            ChatHelper.send("§cPath calculation has been cancelled.");
-        }
-
-        if (executing) {
-            currentPathExecutor.clear();
-            ChatHelper.send("§cPath execution has been cancelled.");
-        }
-
-        if (!executing && !calculating)
-            ChatHelper.send("§cNothing has been canceled.");
-    }
-
-    public void onChunkLoaded() {
-        findAndExecutePath(client.player.getBlockPos(), this.pathfinder.getEnd());
-    }
-
-    /**
-     * The main entry point for finding and executing a path.
-     * Can be used for both initial pathfinding and recalculation.
-     */
     public static void findAndExecutePath(BlockPos start, BlockPos end) {
-        if (calculating.getAndSet(true)) {
+        long now = System.currentTimeMillis();
+        if (now - lastCalculationStartTime < (long) 1000) {
             return;
         }
 
-        long current = System.currentTimeMillis();
-        if ((current - lastCalculationTime.get()) / 1000f > 1)
-            lastCalculationTime.set(current);
-        else return;
+        if (isCalculating.getAndSet(true)) {
+            LOGGER.warn("Already calculating a path...");
+            return;
+        }
 
+        lastCalculationStartTime = now;
 
         Pathfinder pathfinder = new Pathfinder(start, end);
-        task = pathfinder.findPathAsync();
+        currentTask = pathfinder.findPathAsync();
 
-        task.whenCompleteAsync((pathOptional, throwable) -> {
-
-            float timeTaken = (System.currentTimeMillis() - current) / 1000f;
+        currentTask.whenCompleteAsync((pathOptional, throwable) -> {
+            float timeTaken = (System.currentTimeMillis() - lastCalculationStartTime) / 1000f;
 
             if (throwable != null) {
-                Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
-
-                if (throwable instanceof CancellationException) return;
-
-                ChatHelper.send(String.format("§cAn error occurred during path calculation. (%s)", cause.getClass().getSimpleName()));
-                LOGGER.error("An exception occurred during path calculation:", throwable);
-
-                if (currentPathExecutor != null)
-                    currentPathExecutor.clear();
-            } else if (pathOptional != null && pathOptional.isPresent() && !pathOptional.get().isEmpty()) {
-
-                List<Node> newPath = pathOptional.get();
-
-                if (currentPathExecutor == null) {
-                    currentPathExecutor = new PathExecutor(newPath, pathfinder);
-                    ChatHelper.send(String.format("§aPath found in %.3fs with %d steps!", timeTaken, newPath.size()));
-                } else {
-                    currentPathExecutor.setPath(newPath, pathfinder);
-                    ChatHelper.send(String.format("Path updated in %.3fs.", timeTaken));
-                }
-
+                handlePathfindingError(throwable);
+            } else if (pathOptional.isPresent() && !pathOptional.get().isEmpty()) {
+                handlePathfindingSuccess(pathOptional.get(), pathfinder);
             } else {
-                ChatHelper.send(String.format("§cCould not find a path to the destination. (%.1fs for %d nodes taken in account)", timeTaken, pathfinder.getComputedNodes()));
+                ChatHelper.send(String.format("§cCould not find a path. (%.1fs, %d nodes checked)", timeTaken, pathfinder.getComputedNodes()));
                 if (currentPathExecutor != null) currentPathExecutor.clear();
             }
 
-            calculating.set(false);
+            isCalculating.set(false);
+            currentTask = null;
         }, client);
+    }
+
+    private static void handlePathfindingSuccess(List<Node> newPath, Pathfinder pathfinder) {
+        if (currentPathExecutor == null) {
+            currentPathExecutor = new PathExecutor(newPath, pathfinder);
+            ChatHelper.send(String.format("§aPath found with %d steps!", newPath.size()));
+        } else
+            currentPathExecutor.setPath(newPath, pathfinder);
+    }
+
+    private void setPath(List<Node> newPath, Pathfinder newPathfinder) {
+        renderer.clear(this);
+        this.pathRenderables.clear();
+
+        this.path = newPath;
+        this.pathfinder = newPathfinder;
+        this.currentNodeIndex = 0;
+
+        if (path.size() > 1) {
+            Vec3d lastNodePos = null;
+            for (Node node : path.reversed()) {
+                Vec3d currentNodePos = node.getPos().toBottomCenterPos();
+                if (lastNodePos != null) {
+                    Line line = new Line.Builder().start(currentNodePos).end(lastNodePos).color(Color.GREEN).build();
+                    pathRenderables.push(line);
+                }
+                lastNodePos = currentNodePos;
+            }
+        }
+        renderer.addAll(this, pathRenderables);
+
+        InputUtils.setAllowMovementKeys(false);
+    }
+
+    private static void handlePathfindingError(Throwable throwable) {
+        Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
+
+        if (cause instanceof CancellationException) return; // Do nothing, stop() will handle it
+
+        ChatHelper.send(String.format("§cError during path calculation: %s", cause.getClass().getSimpleName()));
+        LOGGER.error("An exception occurred during path calculation:", throwable);
+
+        if (currentPathExecutor != null) {
+            currentPathExecutor.clear();
+        }
     }
 
 }
