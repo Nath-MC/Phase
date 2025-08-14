@@ -8,8 +8,7 @@
     "ClientConnectionMixin",
     "EntityMixin",
     "KeyboardMixin",
-    "accessors.PlayerMoveC2SPacketAccessor",
-    "accessors.TitleScreenBackgroundFadeAccessor"
+    "accessors.PlayerMoveC2SPacketAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
