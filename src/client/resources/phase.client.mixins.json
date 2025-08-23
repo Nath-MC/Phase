@@ -3,8 +3,11 @@
   "package": "com.purpynaxx.phase.mixins",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "CameraMixin",
     "ChatHudMixin",
     "ClientConnectionMixin",
+    "EntityMixin",
+    "KeyboardMixin",
     "accessors.PlayerMoveC2SPacketAccessor"
   ],
   "injectors": {

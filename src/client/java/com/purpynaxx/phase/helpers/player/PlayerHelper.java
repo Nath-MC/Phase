@@ -162,12 +162,14 @@ public final class PlayerHelper {
                 && player.getVelocity().y < 0;
     }
 
-    private static void refresh(ClientPlayerEntity player) {
-        Vec3d pos = player.getPos();
-        float yaw = player.getYaw();
-        float pitch = player.getPitch();
-
-        player.refreshPositionAndAngles(pos, yaw, pitch);
+    public static void resetInputs() {
+        updatePlayer();
+        client.options.forwardKey.reset();
+        client.options.backKey.reset();
+        client.options.rightKey.reset();
+        client.options.leftKey.reset();
+        client.options.jumpKey.reset();
+        client.options.sneakKey.reset();
     }
 
     public enum Side {
