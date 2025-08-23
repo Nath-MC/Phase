@@ -6,12 +6,12 @@ import net.minecraft.util.math.Vec3d;
 
 import java.util.Optional;
 
-public class Line extends Renderable {
+public class PathLine extends Renderable {
 
     private final Vec3d start;
     private final Vec3d end;
 
-    private Line(Builder builder) {
+    private PathLine(Builder builder) {
         super(builder);
         this.start = builder.start.orElseThrow(() -> new IllegalArgumentException("Start position has not been specified !"));
         this.end = builder.end.orElseThrow(() -> new IllegalArgumentException("End position has not been specified !"));
@@ -24,15 +24,15 @@ public class Line extends Renderable {
 
     @Override
     public boolean equals(Renderable renderable) {
-        if (renderable instanceof Line other) {
+        if (renderable instanceof PathLine other) {
             return start.equals(other.start) && end.equals(other.end);
         } else return false;
     }
 
     public static class Builder extends Renderable.Builder<Builder> {
 
-        private Optional<Vec3d> start;
-        private Optional<Vec3d> end;
+        private Optional<Vec3d> start = Optional.empty();
+        private Optional<Vec3d> end = Optional.empty();
 
         public Builder start(Vec3d start) {
             this.start = Optional.of(start);
@@ -50,8 +50,8 @@ public class Line extends Renderable {
         }
 
         @Override
-        public Line build() {
-            return new Line(this);
+        public PathLine build() {
+            return new PathLine(this);
         }
 
     }

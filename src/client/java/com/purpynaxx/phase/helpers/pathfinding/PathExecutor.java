@@ -5,7 +5,7 @@ import com.purpynaxx.phase.helpers.input.InputUtils;
 import com.purpynaxx.phase.helpers.player.PlayerHelper;
 import com.purpynaxx.phase.render.Renderable;
 import com.purpynaxx.phase.render.Renderer;
-import com.purpynaxx.phase.render.impl.Line;
+import com.purpynaxx.phase.render.impl.PathLine;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -179,10 +179,10 @@ public class PathExecutor {
         if (path.size() > 1) {
             Vec3d lastNodePos = null;
             for (Node node : path.reversed()) {
-                Vec3d currentNodePos = node.getPos().toBottomCenterPos();
+                Vec3d currentNodePos = Vec3d.of(node.getPos());
                 if (lastNodePos != null) {
-                    Line line = new Line.Builder().start(currentNodePos).end(lastNodePos).color(Color.GREEN).build();
-                    pathRenderables.push(line);
+                    PathLine pathLine = new PathLine.Builder().start(currentNodePos).end(lastNodePos).color(Color.GREEN).build();
+                    pathRenderables.push(pathLine);
                 }
                 lastNodePos = currentNodePos;
             }

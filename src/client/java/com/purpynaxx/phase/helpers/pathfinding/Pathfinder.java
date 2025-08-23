@@ -3,7 +3,7 @@ package com.purpynaxx.phase.helpers.pathfinding;
 import com.purpynaxx.phase.helpers.pathfinding.nodes.MovementNode;
 import com.purpynaxx.phase.helpers.world.WorldHelper;
 import com.purpynaxx.phase.render.Renderer;
-import com.purpynaxx.phase.render.impl.Line;
+import com.purpynaxx.phase.render.impl.PathLine;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -141,8 +141,8 @@ public class Pathfinder implements Supplier<Optional<List<Node>>> {
     private void addRenderable(Node node1, Node node2) {
         Vec3d start = node1.getPos().toBottomCenterPos();
         Vec3d end = node2.getPos().toBottomCenterPos();
-        Line line = new Line.Builder().start(start).end(end).color(Color.WHITE).debug(true).build();
-        renderer.addRenderable(this, line);
+        PathLine pathLine = new PathLine.Builder().start(start).end(end).color(Color.WHITE).debug(true).build();
+        renderer.addRenderable(this, pathLine);
     }
 
     public int getComputedNodes() {
