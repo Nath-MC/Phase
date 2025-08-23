@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class PathExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Phase/PathExecutor");
+    private static final Color PATH_COLOR = new Color(0, 0, 255, 100);
 
     private static final MinecraftClient client = MinecraftClient.getInstance();
     private static final Renderer renderer = Renderer.getInstance();
@@ -70,14 +71,6 @@ public class PathExecutor {
             ChatHelper.send("§cNothing to cancel.");
     }
 
-    private void clear() {
-        PlayerHelper.resetInputs();
-        renderer.clear(this);
-        pathRenderables.clear();
-        InputUtils.setAllowMovementKeys(true);
-        currentPathExecutor = null;
-    }
-
     public static void tick() {
         if (currentPathExecutor == null) return;
 
@@ -86,41 +79,6 @@ public class PathExecutor {
             return;
         }
         currentPathExecutor.onTick();
-    }
-
-    private void onTick() {
-        if (currentNodeIndex >= path.size()) {
-            onGoalReached();
-            return;
-        }
-
-        Node currentNode = path.get(currentNodeIndex);
-
-        if (currentNode.isDone()) {
-            if (++currentNodeIndex >= path.size()) {
-                return;
-            }
-
-            currentNode = path.get(currentNodeIndex);
-
-            if (!pathRenderables.isEmpty() && currentNodeIndex > 1) {
-                Renderable removed = pathRenderables.pop();
-                renderer.remove(this, removed);
-            }
-        }
-
-        currentNode.execute();
-    }
-
-    private void onGoalReached() {
-        ChatHelper.send("§aPath reached !");
-        clear();
-    }
-
-    public void onChunkLoaded() {
-        if (client.player != null) {
-            findAndExecutePath(client.player.getBlockPos(), this.pathfinder.getEnd());
-        }
     }
 
     public static Optional<PathExecutor> getCurrentPathExecutor() {
@@ -168,30 +126,6 @@ public class PathExecutor {
             currentPathExecutor.setPath(newPath, pathfinder);
     }
 
-    private void setPath(List<Node> newPath, Pathfinder newPathfinder) {
-        renderer.clear(this);
-        this.pathRenderables.clear();
-
-        this.path = newPath;
-        this.pathfinder = newPathfinder;
-        this.currentNodeIndex = 0;
-
-        if (path.size() > 1) {
-            Vec3d lastNodePos = null;
-            for (Node node : path.reversed()) {
-                Vec3d currentNodePos = Vec3d.of(node.getPos());
-                if (lastNodePos != null) {
-                    PathLine pathLine = new PathLine.Builder().start(currentNodePos).end(lastNodePos).color(Color.GREEN).build();
-                    pathRenderables.push(pathLine);
-                }
-                lastNodePos = currentNodePos;
-            }
-        }
-        renderer.addAll(this, pathRenderables);
-
-        InputUtils.setAllowMovementKeys(false);
-    }
-
     private static void handlePathfindingError(Throwable throwable) {
         Throwable cause = throwable.getCause() == null ? throwable : throwable.getCause();
 
@@ -203,6 +137,76 @@ public class PathExecutor {
         if (currentPathExecutor != null) {
             currentPathExecutor.clear();
         }
+    }
+
+    private void clear() {
+        PlayerHelper.resetInputs();
+        renderer.clear(this);
+        pathRenderables.clear();
+        InputUtils.setAllowMovementKeys(true);
+        currentPathExecutor = null;
+    }
+
+    private void onTick() {
+        if (currentNodeIndex >= path.size()) {
+            onGoalReached();
+            return;
+        }
+
+        Node currentNode = path.get(currentNodeIndex);
+
+        if (currentNode.isDone()) {
+            if (++currentNodeIndex >= path.size()) {
+                return;
+            }
+
+            currentNode = path.get(currentNodeIndex);
+
+            if (!pathRenderables.isEmpty() && currentNodeIndex > 3) {
+                Renderable removed = pathRenderables.pop();
+                renderer.remove(this, removed);
+            }
+        }
+
+        currentNode.execute();
+    }
+
+    private void onGoalReached() {
+        ChatHelper.send("§aPath reached !");
+        clear();
+    }
+
+    public void onChunkLoaded() {
+        if (client.player != null) {
+            findAndExecutePath(client.player.getBlockPos(), this.pathfinder.getEnd());
+        }
+    }
+
+    private void setPath(List<Node> newPath, Pathfinder newPathfinder) {
+        renderer.clear(this);
+        this.pathRenderables.clear();
+
+        this.path = newPath;
+        this.pathfinder = newPathfinder;
+        this.currentNodeIndex = 0;
+
+        if (path.size() > 1) {
+            Vec3d lastNodePos = null;
+            for (Node node : path.reversed()) {
+                Vec3d currentNodePos = node.getPos().toCenterPos();
+                if (lastNodePos != null) {
+                    pathRenderables.push(new PathLine.Builder()
+                            .start(currentNodePos)
+                            .end(lastNodePos)
+                            .color(PATH_COLOR)
+                            .build());
+                }
+                lastNodePos = currentNodePos;
+            }
+        }
+        renderer.addAll(this, pathRenderables);
+
+        InputUtils.setAllowMovementKeys(false);
     }
 
 }

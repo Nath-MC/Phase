@@ -39,7 +39,8 @@ public final class Renderer {
 
     private final Map<Object, Set<Renderable>> renderablesByModuleMap = new ConcurrentHashMap<>();
 
-    private Renderer() {}
+    private Renderer() {
+    }
 
     public static Renderer getInstance() {
         return INSTANCE;
@@ -60,7 +61,7 @@ public final class Renderer {
     /**
      * Adds a Renderable object to the render queue.
      *
-     * @param instance The instance which owns the renderable.
+     * @param instance   The instance which owns the renderable.
      * @param renderable The Renderable object to be added.
      */
     public void addRenderable(Object instance, Renderable renderable) {
@@ -274,26 +275,49 @@ public final class Renderer {
 
     /**
      * Draws a line in the world from start positon to end positon with the specified color.
+     * This implementation draws a camera-facing quad.
      *
      * @param renderContext The current world render context.
      * @param start         The start position of the line.
      * @param end           The end position of the line.
      * @param color         The color of the line.
+     * @param depthTest     Whether to perform depth testing.
+     * @param width         The width of the line
      */
-    public void drawLine(WorldRenderContext renderContext, Vec3d start, Vec3d end, Color color, boolean depthTest) {
+    public void drawLine(WorldRenderContext renderContext, Vec3d start, Vec3d end, Color color, boolean depthTest, float width) {
         Matrix4f matrix = renderContext.matrixStack().peek().getPositionMatrix();
         Vec3d cameraPos = renderContext.camera().getPos();
 
-        start = start.subtract(cameraPos);
-        end = end.subtract(cameraPos);
+        Vec3d startLocal = start.subtract(cameraPos);
+        Vec3d endLocal = end.subtract(cameraPos);
 
+        Vec3d lineDir = endLocal.subtract(startLocal).normalize();
 
-        RenderLayer layer = depthTest ? Layers.LINES_LAYER : Layers.OVERLAY_LINES_LAYER;
+        Vec3d cameraToLineDir = startLocal.normalize();
+        Vec3d sideDir = lineDir.crossProduct(cameraToLineDir).normalize();
+
+        if (sideDir.lengthSquared() == 0) {
+            sideDir = lineDir.crossProduct(new Vec3d(0, 1, 0)).normalize();
+            if (sideDir.lengthSquared() == 0)
+                sideDir = lineDir.crossProduct(new Vec3d(1, 0, 0)).normalize();
+        }
+
+        Vec3d offset = sideDir.multiply(width / 2.0);
+
+        Vec3d v1 = startLocal.subtract(offset);
+        Vec3d v2 = startLocal.add(offset);
+        Vec3d v3 = endLocal.add(offset);
+        Vec3d v4 = endLocal.subtract(offset);
+
+        RenderLayer layer = depthTest ? Layers.QUADS_LAYER : Layers.OVERLAY_QUADS_LAYER;
         VertexConsumer vertexConsumer = renderContext.consumers().getBuffer(layer);
 
-        line(matrix, vertexConsumer, color,
-                (float) start.x, (float) start.y, (float) start.z,
-                (float) end.x, (float) end.y, (float) end.z);
+        quad(matrix, vertexConsumer, color,
+                (float) v4.x, (float) v4.y, (float) v4.z,
+                (float) v3.x, (float) v3.y, (float) v3.z,
+                (float) v2.x, (float) v2.y, (float) v2.z,
+                (float) v1.x, (float) v1.y, (float) v1.z
+        );
 
         ((VertexConsumerProvider.Immediate) renderContext.consumers()).drawCurrentLayer();
     }
